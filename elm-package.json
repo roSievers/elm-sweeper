@@ -1,16 +1,17 @@
 {
+    "version": "1.0.0",
     "summary": "Hexagonal Mineswpper clone written in elm.",
+    "repository": "https://github.com/roSievers/elm-sweeper.git",
+    "license": "BSD3",
     "source-directories": [
         "src"
     ],
-    "repository": "https://github.com/roSievers/elm-sweeper.git",
-    "dependencies": {
-        "elm-lang/core": "4.0.5 <= v < 5.0.0",
-        "Fresheyeball/elm-return": "4.0.0 <= v < 5.0.0",
-        "elm-lang/html": "1.1.0 <= v < 2.0.0"
-    },
     "exposed-modules": [],
-    "version": "1.0.0",
-    "elm-version": "0.17.0 <= v < 0.18.0",
-    "license": "BSD3"
+    "dependencies": {
+        "Fresheyeball/elm-return": "4.0.0 <= v < 5.0.0",
+        "elm-lang/core": "4.0.5 <= v < 5.0.0",
+        "elm-lang/html": "1.1.0 <= v < 2.0.0",
+        "elm-lang/svg": "1.1.1 <= v < 2.0.0"
+    },
+    "elm-version": "0.17.0 <= v < 0.18.0"
 }
