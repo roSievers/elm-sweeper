@@ -69,7 +69,7 @@ init =
                 , ( ( 5, 2 ), { content = Count, revealed = False } )
                 , ( ( 1, 3 ), { content = Count, revealed = False } )
                 , ( ( 2, 3 ), { content = Count, revealed = False } )
-                , ( ( 3, 3 ), { content = Mine, revealed = False } )
+                , ( ( 3, 3 ), { content = Flower, revealed = False } )
                 , ( ( 4, 3 ), { content = Mine, revealed = False } )
                 , ( ( 5, 3 ), { content = Mine, revealed = True } )
                 , ( ( 1, 4 ), { content = Count, revealed = False } )
@@ -185,7 +185,7 @@ cellSvg context cell =
                 hexagon context.coordinate "blue"
 
             Flower ->
-                hexagon context.coordinate "blue"
+                withCaption context.coordinate "blue" (toString (countFlower context))
     else
         hexagon context.coordinate "orange"
 
@@ -241,6 +241,13 @@ isMine content =
 countNbhd : Grid.Context Cell -> Int
 countNbhd context =
     context.nbhd ()
+        |> List.filter (\cell -> isMine cell.content)
+        |> List.length
+
+
+countFlower : Grid.Context Cell -> Int
+countFlower context =
+    context.nbhd2 ()
         |> List.filter (\cell -> isMine cell.content)
         |> List.length
 

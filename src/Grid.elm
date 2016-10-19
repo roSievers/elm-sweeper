@@ -41,13 +41,16 @@ get : Coordinate -> Grid a -> Maybe a
 get coordinate grid =
     Dict.get ( coordinate.x, coordinate.y ) grid
 
+
 insert : Coordinate -> a -> Grid a -> Grid a
 insert coordinate value grid =
-    Dict.insert  ( coordinate.x, coordinate.y ) value grid
+    Dict.insert ( coordinate.x, coordinate.y ) value grid
+
 
 type alias Context a =
     { coordinate : Coordinate
     , nbhd : () -> List a
+    , nbhd2 : () -> List a
     , getRelative : Coordinate -> Maybe a
     }
 
@@ -68,6 +71,7 @@ context coord grid =
     in
         { coordinate = coordinate
         , nbhd = \() -> getNbhd coordinate grid
+        , nbhd2 = \() -> getNbhd2 coordinate grid
         , getRelative = \delta -> getRelative coordinate delta grid
         }
 
@@ -101,6 +105,43 @@ getNbhd center grid =
                 , { x = 1, y = 0 }
                 , { x = 0, y = -1 }
                 ]
+    in
+        nbhd
+            |> List.map (\delta -> getRelative center delta grid)
+            |> List.filterMap identity
+
+
+getNbhd2 : Coordinate -> Grid a -> List a
+getNbhd2 center grid =
+    let
+        base =
+            [ { x = 0, y = -2 }
+            , { x = -2, y = -1 }
+            , { x = -1, y = -1 }
+            , { x = 0, y = -1 }
+            , { x = 1, y = -1 }
+            , { x = 2, y = -1 }
+            , { x = -2, y = 0 }
+            , { x = -1, y = 0 }
+            , { x = 1, y = 0 }
+            , { x = 2, y = 0 }
+            , { x = -2, y = 1 }
+            , { x = -1, y = 1 }
+            , { x = 0, y = 1 }
+            , { x = 1, y = 1 }
+            , { x = 2, y = 1 }
+            , { x = 0, y = 2 }
+            ]
+
+        nbhd =
+            if center.x % 2 == 0 then
+                { x = -1, y = -2 }
+                    :: { x = 1, y = -2 }
+                    :: base
+            else
+                { x = -1, y = 2 }
+                    :: { x = 1, y = 2 }
+                    :: base
     in
         nbhd
             |> List.map (\delta -> getRelative center delta grid)
