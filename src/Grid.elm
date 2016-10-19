@@ -1,8 +1,11 @@
 module Grid exposing (..)
 
 import Dict exposing (Dict)
+import List
 
 
+{-| Implements a hexagonal grid type.
+-}
 type alias Grid a =
     Dict ( Int, Int ) a
 
@@ -12,16 +15,93 @@ type alias Coordinate =
     , y : Int
     }
 
+
 {-| Working with ( Int, Int ) inside the Grid module works around the missing
-comparable typeclass of records in elm. -}
+comparable typeclass of records in elm. All exposed functions should only talk
+using Coordinate.
+-}
 toCoordinate : ( Int, Int ) -> Coordinate
 toCoordinate ( x, y ) =
     { x = x, y = y }
 
 
-view : (Coordinate -> a -> output) -> Grid a -> List output
+updateAt : Coordinate -> (a -> a) -> Grid a -> Grid a
+updateAt coordinate function grid =
+    let
+        coord =
+            ( coordinate.x, coordinate.y )
+    in
+        Dict.get coord grid
+            |> Maybe.map
+                (\value -> Dict.insert coord (function value) grid)
+            |> Maybe.withDefault grid
+
+
+get : Coordinate -> Grid a -> Maybe a
+get coordinate grid =
+    Dict.get ( coordinate.x, coordinate.y ) grid
+
+insert : Coordinate -> a -> Grid a -> Grid a
+insert coordinate value grid =
+    Dict.insert  ( coordinate.x, coordinate.y ) value grid
+
+type alias Context a =
+    { coordinate : Coordinate
+    , nbhd : () -> List a
+    , getRelative : Coordinate -> Maybe a
+    }
+
+
+view : (Context a -> a -> output) -> Grid a -> List output
 view cellSvg grid =
     Dict.foldl
-        (\coord a list -> (cellSvg (toCoordinate coord) a) :: list)
+        (\coord a list -> (cellSvg (context coord grid) a) :: list)
         []
         grid
+
+
+context : ( Int, Int ) -> Grid a -> Context a
+context coord grid =
+    let
+        coordinate =
+            toCoordinate coord
+    in
+        { coordinate = coordinate
+        , nbhd = \() -> getNbhd coordinate grid
+        , getRelative = \delta -> getRelative coordinate delta grid
+        }
+
+
+getRelative : Coordinate -> Coordinate -> Grid a -> Maybe a
+getRelative origin delta grid =
+    let
+        coord =
+            ( origin.x + delta.x, origin.y + delta.y )
+    in
+        Dict.get coord grid
+
+
+getNbhd : Coordinate -> Grid a -> List a
+getNbhd center grid =
+    let
+        nbhd =
+            if center.x % 2 == 0 then
+                [ { x = -1, y = -1 }
+                , { x = 0, y = -1 }
+                , { x = 1, y = -1 }
+                , { x = -1, y = 0 }
+                , { x = 1, y = 0 }
+                , { x = 0, y = 1 }
+                ]
+            else
+                [ { x = -1, y = 1 }
+                , { x = 0, y = 1 }
+                , { x = 1, y = 1 }
+                , { x = -1, y = 0 }
+                , { x = 1, y = 0 }
+                , { x = 0, y = -1 }
+                ]
+    in
+        nbhd
+            |> List.map (\delta -> getRelative center delta grid)
+            |> List.filterMap identity
