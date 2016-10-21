@@ -171,23 +171,23 @@ viewLevel model =
         (Grid.view cellSvg model.level)
 
 
-cellSvg : Grid.Context Cell -> Cell -> Svg Msg
-cellSvg context cell =
+cellSvg : Grid Cell -> Coordinate -> Cell -> Svg Msg
+cellSvg grid coordinate cell =
     if cell.revealed then
         case cell.content of
             Empty ->
-                withCaption context.coordinate "lightgray" "?"
+                withCaption coordinate "lightgray" "?"
 
             Count ->
-                withCaption context.coordinate "lightgray" (toString (countNbhd context))
+                withCaption coordinate "lightgray" (toString (countNbhd grid coordinate))
 
             Mine ->
-                hexagon context.coordinate "blue"
+                hexagon coordinate "blue"
 
             Flower ->
-                withCaption context.coordinate "blue" (toString (countFlower context))
+                withCaption coordinate "blue" (toString (countFlower grid coordinate))
     else
-        hexagon context.coordinate "orange"
+        hexagon coordinate "orange"
 
 
 hexagon : Coordinate -> String -> Svg Msg
@@ -238,16 +238,16 @@ isMine content =
             True
 
 
-countNbhd : Grid.Context Cell -> Int
-countNbhd context =
-    context.nbhd ()
+countNbhd : Grid Cell -> Coordinate -> Int
+countNbhd grid coordinate =
+    Grid.getNbhd coordinate grid
         |> List.filter (\cell -> isMine cell.content)
         |> List.length
 
 
-countFlower : Grid.Context Cell -> Int
-countFlower context =
-    context.nbhd2 ()
+countFlower : Grid Cell -> Coordinate -> Int
+countFlower grid coordinate =
+    Grid.getNbhd2 coordinate grid
         |> List.filter (\cell -> isMine cell.content)
         |> List.length
 

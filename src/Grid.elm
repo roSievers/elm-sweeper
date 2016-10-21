@@ -49,31 +49,16 @@ insert coordinate value grid =
 
 type alias Context a =
     { coordinate : Coordinate
-    , nbhd : () -> List a
-    , nbhd2 : () -> List a
-    , getRelative : Coordinate -> Maybe a
+    , grid : Grid a
     }
 
 
-view : (Context a -> a -> output) -> Grid a -> List output
+view : (Grid a -> Coordinate -> a -> output) -> Grid a -> List output
 view cellSvg grid =
     Dict.foldl
-        (\coord a list -> (cellSvg (context coord grid) a) :: list)
+        (\coord a list -> (cellSvg grid (toCoordinate coord) a) :: list)
         []
         grid
-
-
-context : ( Int, Int ) -> Grid a -> Context a
-context coord grid =
-    let
-        coordinate =
-            toCoordinate coord
-    in
-        { coordinate = coordinate
-        , nbhd = \() -> getNbhd coordinate grid
-        , nbhd2 = \() -> getNbhd2 coordinate grid
-        , getRelative = \delta -> getRelative coordinate delta grid
-        }
 
 
 getRelative : Coordinate -> Coordinate -> Grid a -> Maybe a
