@@ -1,33 +1,49 @@
 html, head, body {
-  margin: 0;
-  height: 100%;
+    margin: 0;
+    height: 100%;
 }
 
 #levelView {
-  width : 100%;
+    width: 100%;
 }
 
 .cell:hover polygon.highlight {
-  opacity: 0.3;
+    opacity: 0.3;
 }
 
 polygon.highlight {
-  fill: white;
+    fill: white;
     opacity: 0;
 }
 
 .mine {
-  fill:blue;
+    fill: blue;
 }
 
 .hidden-cell {
-  fill:orange;
+    fill: orange;
 }
 
 .lightgray {
-  fill:lightgray;
+    fill: lightgray;
 }
 
 .hex {
     transition: fill 200ms ease-in-out;
+}
+
+.flower {
+    fill: white;
+}
+
+.flower-overlay {
+    fill: white;
+    opacity: 0;
+    transform: scale(0.1);
+    transition: transform 200ms ease-in-out, opacity 200ms ease-in-out;
+}
+
+.flower-active {
+    opacity: 0.5;
+    transform: scale(1);
 }

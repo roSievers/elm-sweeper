@@ -11,7 +11,7 @@ import Svg.Events
 import Json.Decode as Json
 import Dict exposing (Dict)
 import Grid exposing (Grid)
-import Debug exposing (log)
+import Debug
 
 
 main =
@@ -37,7 +37,7 @@ type CellContent
     = Empty
     | Count
     | Mine
-    | Flower
+    | Flower Bool
 
 
 type alias Cell =
@@ -70,7 +70,7 @@ init =
                 , ( ( 5, 2 ), { content = Count, revealed = False } )
                 , ( ( 1, 3 ), { content = Count, revealed = False } )
                 , ( ( 2, 3 ), { content = Count, revealed = False } )
-                , ( ( 3, 3 ), { content = Flower, revealed = False } )
+                , ( ( 3, 3 ), { content = Flower False, revealed = False } )
                 , ( ( 4, 3 ), { content = Mine, revealed = False } )
                 , ( ( 5, 3 ), { content = Mine, revealed = True } )
                 , ( ( 1, 4 ), { content = Count, revealed = False } )
@@ -89,17 +89,26 @@ init =
 
 
 type Msg
-    = ClickOn Coordinate
+    = Reveal Coordinate Cell
+    | ToggleFlower Coordinate Cell Bool
     | SetClickType ClickType
 
 
 update : Msg -> Model -> Return Msg Model
 update action model =
-    case action of
-        ClickOn coordinate ->
-            Grid.get coordinate model.level
-                |> Maybe.map (handleClickOn model coordinate)
-                |> Maybe.withDefault model
+    case Debug.log "msg" action of
+        Reveal coordinate cell ->
+            handleReveal coordinate cell model
+                |> Return.singleton
+
+        ToggleFlower coordinate cell overlay ->
+            { model
+                | level =
+                    Grid.insert
+                        coordinate
+                        { cell | content = Flower overlay }
+                        model.level
+            }
                 |> Return.singleton
 
         SetClickType clickType ->
@@ -107,8 +116,8 @@ update action model =
                 { model | clickType = clickType }
 
 
-handleClickOn : Model -> Coordinate -> Cell -> Model
-handleClickOn model coordinate cell =
+handleReveal : Coordinate -> Cell -> Model -> Model
+handleReveal coordinate cell model =
     let
         mineClicked =
             isMine cell.content
@@ -202,10 +211,10 @@ cellSvg grid coordinate cell =
             Mine ->
                 mineCell coordinate
 
-            Flower ->
-                flowerCell grid coordinate cell
+            Flower overlay ->
+                flowerCell grid coordinate cell overlay
     else
-        hiddenCell coordinate
+        hiddenCell coordinate cell
 
 
 mineCell : Coordinate -> Svg Msg
@@ -218,11 +227,11 @@ mineCell coordinate =
         ]
 
 
-hiddenCell : Coordinate -> Svg Msg
-hiddenCell coordinate =
+hiddenCell : Coordinate -> Cell -> Svg Msg
+hiddenCell coordinate cell =
     Svg.g
         [ atCoordinate coordinate
-        , Svg.Events.onClick (ClickOn coordinate)
+        , Svg.Events.onClick (Reveal coordinate cell)
         , Svg.Attributes.class "cell"
         ]
         [ hexagon "hex hidden-cell"
@@ -232,42 +241,73 @@ hiddenCell coordinate =
 
 emptyCell : Coordinate -> Svg msg
 emptyCell coordinate =
-    withCaption coordinate "hex lightgray" "?"
+    withCaption coordinate "cell" "hex lightgray" "?"
 
 
 counterCell : Grid Cell -> Coordinate -> Cell -> Svg msg
 counterCell grid coordinate cell =
-    withCaption coordinate "hex lightgray" (toString (countNbhd grid coordinate))
+    withCaption coordinate "cell" "hex lightgray" (toString (countNbhd grid coordinate))
 
 
-flowerCell : Grid Cell -> Coordinate -> Cell -> Svg msg
-flowerCell grid coordinate cell =
-    withCaption coordinate "hex mine" (toString (countFlower grid coordinate))
+flowerCell : Grid Cell -> Coordinate -> Cell -> Bool -> Svg Msg
+flowerCell grid coordinate cell overlay =
+    Svg.g
+        [ atCoordinate coordinate
+        , Svg.Attributes.class "cell flower"
+        , Svg.Events.onClick (ToggleFlower coordinate cell (not overlay))
+        ]
+        [ hexagon "hex mine"
+        , centeredCaption (toString (countFlower grid coordinate))
+        , flowerNbhdPolygon overlay
+        ]
 
 
+{-| This function creates a hexagon with a sidelength of 0.9 as a svg polygon.
+Supply a classname to style the polygon via css.
+-}
 hexagon : String -> Svg msg
-hexagon color =
+hexagon hexClass =
     Svg.polygon
-        [ Svg.Attributes.class color
+        [ Svg.Attributes.class hexClass
         , points "1,0 0.5,-0.866 -0.5,-0.866 -1,0 -0.5,0.866 0.5,0.866"
         , transform "scale(0.9)"
         ]
         []
 
 
-withCaption : Coordinate -> String -> String -> Svg msg
-withCaption coordinate color caption =
+flowerNbhdPolygon : Bool -> Svg msg
+flowerNbhdPolygon active =
+    Svg.polygon
+        [ Svg.Attributes.class
+            (if active then
+                "flower-overlay flower-active"
+             else
+                "flower-overlay"
+            )
+        , points "0.5,4.33 1,3.464 2,3.464 2.5,2.598 3.5,2.598 4,1.732 3.5,0.866 4,0 3.5,-0.866 4,-1.732 3.5,-2.598 2.5,-2.598 2,-3.464 1,-3.464 0.5,-4.33 -0.5,-4.33 -1,-3.464 -2,-3.464 -2.5,-2.598 -3.5,-2.598 -4,-1.732 -3.5,-0.866 -4,0 -3.5,0.866 -4,1.732 -3.5,2.598 -2.5,2.598 -2,3.464 -1,3.464 -0.5,4.33"
+        , transform "scale(0.9)"
+        ]
+        []
+
+
+withCaption : Coordinate -> String -> String -> String -> Svg msg
+withCaption coordinate cellClass hexClass caption =
     Svg.g
         [ atCoordinate coordinate
-        , Svg.Attributes.class "cell"
+        , Svg.Attributes.class cellClass
         ]
-        [ hexagon color
-        , Svg.text'
-            [ Svg.Attributes.style "text-anchor:middle;font-size:0.8"
-            , dominantBaseline "central"
-            ]
-            [ Svg.text caption ]
+        [ hexagon hexClass
+        , centeredCaption caption
         ]
+
+
+centeredCaption : String -> Svg msg
+centeredCaption caption =
+    Svg.text'
+        [ Svg.Attributes.style "text-anchor:middle;font-size:0.8;pointer-events:none;"
+        , dominantBaseline "central"
+        ]
+        [ Svg.text caption ]
 
 
 isMine : CellContent -> Bool
@@ -282,7 +322,7 @@ isMine content =
         Mine ->
             True
 
-        Flower ->
+        Flower _ ->
             True
 
 
