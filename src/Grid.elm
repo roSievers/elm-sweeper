@@ -47,10 +47,41 @@ insert coordinate value grid =
     Dict.insert ( coordinate.x, coordinate.y ) value grid
 
 
-type alias Context a =
-    { coordinate : Coordinate
-    , grid : Grid a
+type alias BoundingBox =
+    { top : Int
+    , right : Int
+    , bottom : Int
+    , left : Int
     }
+
+
+{-| Calculates a bounding box for all Elements in the Grid.
+If the Grid is empty, then this returns Nothing.
+-}
+boundingBox : Grid a -> Maybe BoundingBox
+boundingBox grid =
+    let
+        coords =
+            Dict.keys grid
+
+        xCoords =
+            List.map (\( x, _ ) -> x) coords
+
+        yCoords =
+            List.map (\( _, y ) -> y) coords
+    in
+        Maybe.map4
+            (\top right bottom left ->
+                { top = top
+                , right = right
+                , bottom = bottom
+                , left = left
+                }
+            )
+            (List.minimum yCoords)
+            (List.maximum xCoords)
+            (List.maximum yCoords)
+            (List.minimum xCoords)
 
 
 view : (Grid a -> Coordinate -> a -> output) -> Grid a -> List output

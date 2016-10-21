@@ -3,6 +3,7 @@ module Main exposing (..)
 import Html exposing (Html, div, text)
 import Html.App
 import Html.Events
+import Html.Attributes
 import Return exposing (Return)
 import Svg exposing (Svg, svg, rect)
 import Svg.Attributes exposing (..)
@@ -166,9 +167,26 @@ clickTypeToggle clickType =
 
 viewLevel : Model -> Html.Html Msg
 viewLevel model =
-    svg
-        [ width "1000", height "800", viewBox "0 0 20 16" ]
-        (Grid.view cellSvg model.level)
+    let
+        visibleArea =
+            Grid.boundingBox model.level
+                |> Maybe.map (levelBox >> viewBox)
+                |> Maybe.withDefault (viewBox "0 0 20 16")
+    in
+        svg
+            [ Html.Attributes.id "levelView", width "1000", height "800", visibleArea, preserveAspectRatio "xMidYMid meet" ]
+            (Grid.view cellSvg model.level)
+
+
+levelBox : Grid.BoundingBox -> String
+levelBox box =
+    toString (1.5 * toFloat box.left - 2)
+        ++ " "
+        ++ toString (2 * toFloat box.top - 2)
+        ++ " "
+        ++ toString (1.5 * toFloat (box.right - box.left) + 4)
+        ++ " "
+        ++ toString (2 * toFloat (box.bottom - box.top) + 4)
 
 
 cellSvg : Grid Cell -> Coordinate -> Cell -> Svg Msg
@@ -176,44 +194,74 @@ cellSvg grid coordinate cell =
     if cell.revealed then
         case cell.content of
             Empty ->
-                withCaption coordinate "lightgray" "?"
+                emptyCell coordinate
 
             Count ->
-                withCaption coordinate "lightgray" (toString (countNbhd grid coordinate))
+                counterCell grid coordinate cell
 
             Mine ->
-                hexagon coordinate "blue"
+                mineCell coordinate
 
             Flower ->
-                withCaption coordinate "blue" (toString (countFlower grid coordinate))
+                flowerCell grid coordinate cell
     else
-        hexagon coordinate "orange"
+        hiddenCell coordinate
 
 
-hexagon : Coordinate -> String -> Svg Msg
-hexagon coordinate color =
+mineCell : Coordinate -> Svg Msg
+mineCell coordinate =
+    Svg.g
+        [ atCoordinate coordinate
+        , Svg.Attributes.class "cell"
+        ]
+        [ hexagon "hex mine"
+        ]
+
+
+hiddenCell : Coordinate -> Svg Msg
+hiddenCell coordinate =
     Svg.g
         [ atCoordinate coordinate
         , Svg.Events.onClick (ClickOn coordinate)
+        , Svg.Attributes.class "cell"
         ]
-        [ Svg.polygon
-            [ fill color
-            , points "1,0 0.5,-0.866 -0.5,-0.866 -1,0 -0.5,0.866 0.5,0.866"
-            , transform "scale(0.9)"
-            ]
-            []
+        [ hexagon "hex hidden-cell"
+        , hexagon "highlight"
         ]
+
+
+emptyCell : Coordinate -> Svg msg
+emptyCell coordinate =
+    withCaption coordinate "hex lightgray" "?"
+
+
+counterCell : Grid Cell -> Coordinate -> Cell -> Svg msg
+counterCell grid coordinate cell =
+    withCaption coordinate "hex lightgray" (toString (countNbhd grid coordinate))
+
+
+flowerCell : Grid Cell -> Coordinate -> Cell -> Svg msg
+flowerCell grid coordinate cell =
+    withCaption coordinate "hex mine" (toString (countFlower grid coordinate))
+
+
+hexagon : String -> Svg msg
+hexagon color =
+    Svg.polygon
+        [ Svg.Attributes.class color
+        , points "1,0 0.5,-0.866 -0.5,-0.866 -1,0 -0.5,0.866 0.5,0.866"
+        , transform "scale(0.9)"
+        ]
+        []
 
 
 withCaption : Coordinate -> String -> String -> Svg msg
 withCaption coordinate color caption =
-    Svg.g [ atCoordinate coordinate ]
-        [ Svg.polygon
-            [ fill color
-            , points "1,0 0.5,-0.866 -0.5,-0.866 -1,0 -0.5,0.866 0.5,0.866"
-            , transform "scale(0.9)"
-            ]
-            []
+    Svg.g
+        [ atCoordinate coordinate
+        , Svg.Attributes.class "cell"
+        ]
+        [ hexagon color
         , Svg.text'
             [ Svg.Attributes.style "text-anchor:middle;font-size:0.8"
             , dominantBaseline "central"

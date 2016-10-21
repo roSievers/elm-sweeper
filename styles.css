@@ -1,0 +1,33 @@
+html, head, body {
+  margin: 0;
+  height: 100%;
+}
+
+#levelView {
+  width : 100%;
+}
+
+.cell:hover polygon.highlight {
+  opacity: 0.3;
+}
+
+polygon.highlight {
+  fill: white;
+    opacity: 0;
+}
+
+.mine {
+  fill:blue;
+}
+
+.hidden-cell {
+  fill:orange;
+}
+
+.lightgray {
+  fill:lightgray;
+}
+
+.hex {
+    transition: fill 200ms ease-in-out;
+}
