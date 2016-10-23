@@ -8,7 +8,7 @@ import Return exposing (Return)
 import Svg exposing (Svg, svg, rect)
 import Svg.Attributes exposing (..)
 import Svg.Events
-import Json.Decode as Json
+import Json.Decode
 import Dict exposing (Dict)
 import Grid exposing (Grid)
 import Debug
@@ -66,7 +66,7 @@ init =
                 [ ( ( 1, 2 ), { content = Count, revealed = True } )
                 , ( ( 2, 2 ), { content = Mine, revealed = True } )
                 , ( ( 3, 2 ), { content = Empty, revealed = True } )
-                , ( ( 4, 2 ), { content = Empty, revealed = True } )
+                , ( ( 4, 2 ), { content = Empty, revealed = False } )
                 , ( ( 5, 2 ), { content = Count, revealed = False } )
                 , ( ( 1, 3 ), { content = Count, revealed = False } )
                 , ( ( 2, 3 ), { content = Count, revealed = False } )
@@ -90,7 +90,7 @@ init =
 
 
 type Msg
-    = Reveal Coordinate Cell
+    = Reveal ClickType Coordinate Cell
     | ToggleFlower Coordinate Cell Bool
     | SetClickType ClickType
 
@@ -98,8 +98,8 @@ type Msg
 update : Msg -> Model -> Return Msg Model
 update action model =
     case Debug.log "msg" action of
-        Reveal coordinate cell ->
-            handleReveal coordinate cell model
+        Reveal clickType coordinate cell ->
+            handleReveal clickType coordinate cell model
                 |> Return.singleton
 
         ToggleFlower coordinate cell overlay ->
@@ -117,14 +117,14 @@ update action model =
                 { model | clickType = clickType }
 
 
-handleReveal : Coordinate -> Cell -> Model -> Model
-handleReveal coordinate cell model =
+handleReveal : ClickType -> Coordinate -> Cell -> Model -> Model
+handleReveal clickType coordinate cell model =
     let
         mineClicked =
             isMine cell.content
 
         mineDesired =
-            (model.clickType == RevealMine)
+            clickType == RevealMine
     in
         case mineClicked == mineDesired of
             True ->
@@ -172,7 +172,7 @@ viewLevel model =
     in
         svg
             [ Html.Attributes.id "levelView", width "1000", height "800", visibleArea, preserveAspectRatio "xMidYMid meet" ]
-            (Grid.view cellSvg model.level)
+            (Grid.view (cellSvg model) model.level)
 
 
 levelBox : Grid.BoundingBox -> String
@@ -186,8 +186,8 @@ levelBox box =
         ++ toString (2 * toFloat (box.bottom - box.top) + 4)
 
 
-cellSvg : Grid Cell -> Coordinate -> Cell -> Svg Msg
-cellSvg grid coordinate cell =
+cellSvg : Model -> Grid Cell -> Coordinate -> Cell -> Svg Msg
+cellSvg model grid coordinate cell =
     if cell.revealed then
         case cell.content of
             Empty ->
@@ -202,7 +202,7 @@ cellSvg grid coordinate cell =
             Flower overlay ->
                 flowerCell grid coordinate cell overlay
     else
-        hiddenCell coordinate cell
+        hiddenCell model.clickType coordinate cell
 
 
 mineCell : Coordinate -> Svg Msg
@@ -215,16 +215,36 @@ mineCell coordinate =
         ]
 
 
-hiddenCell : Coordinate -> Cell -> Svg Msg
-hiddenCell coordinate cell =
+hiddenCell : ClickType -> Coordinate -> Cell -> Svg Msg
+hiddenCell clickType coordinate cell =
     Svg.g
         [ atCoordinate coordinate
-        , Svg.Events.onClick (Reveal coordinate cell)
+        , Svg.Events.onClick (Reveal clickType coordinate cell)
+        , onRightClick (Reveal (flipClickType clickType) coordinate cell)
         , Svg.Attributes.class "cell"
         ]
         [ hexagon "hex hidden-cell"
         , hexagon "highlight"
         ]
+
+
+onRightClick message =
+    Html.Events.onWithOptions
+        "contextmenu"
+        { stopPropagation = False
+        , preventDefault = True
+        }
+        (Json.Decode.succeed message)
+
+
+flipClickType : ClickType -> ClickType
+flipClickType clickType =
+    case clickType of
+        RevealEmpty ->
+            RevealMine
+
+        RevealMine ->
+            RevealEmpty
 
 
 emptyCell : Coordinate -> Svg msg

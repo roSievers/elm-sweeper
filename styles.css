@@ -42,7 +42,7 @@ polygon.highlight {
     opacity: 0;
     transform: scale(0.1);
     transition: transform 200ms ease-in-out, opacity 200ms ease-in-out;
-    pointer-events:none;
+    pointer-events: none;
 }
 
 .flower-active {
@@ -51,8 +51,8 @@ polygon.highlight {
 }
 
 #clickType {
-  width: 10%;
-  height: 200px;
+    width: 10%;
+    height: 200px;
 }
 
 #clickType .left-click-type {
