@@ -72,7 +72,8 @@ init =
                 , ( ( 2, 3 ), { content = Count, revealed = False } )
                 , ( ( 3, 3 ), { content = Flower False, revealed = False } )
                 , ( ( 4, 3 ), { content = Mine, revealed = False } )
-                , ( ( 5, 3 ), { content = Mine, revealed = True } )
+                , ( ( 5, 3 ), { content = Mine, revealed = False } )
+                , ( ( 6, 3 ), { content = Mine, revealed = False } )
                 , ( ( 1, 4 ), { content = Count, revealed = False } )
                 , ( ( 2, 4 ), { content = Count, revealed = False } )
                 , ( ( 3, 4 ), { content = Count, revealed = False } )
@@ -156,22 +157,9 @@ view model =
         [ viewLevel model
         , Html.br [] []
         , Html.text ("Mistakes: " ++ toString model.mistakes)
-        , clickTypeToggle model.clickType
+        , Html.br [] []
+        , intentDisplay model.clickType
         ]
-
-
-clickTypeToggle : ClickType -> Html Msg
-clickTypeToggle clickType =
-    case clickType of
-        RevealEmpty ->
-            Html.button
-                [ Html.Events.onClick (SetClickType RevealMine) ]
-                [ Html.text "currently Revealing" ]
-
-        RevealMine ->
-            Html.button
-                [ Html.Events.onClick (SetClickType RevealEmpty) ]
-                [ Html.text "currently marking Mines" ]
 
 
 viewLevel : Model -> Html.Html Msg
@@ -258,6 +246,7 @@ flowerCell grid coordinate cell overlay =
         ]
         [ hexagon "hex mine"
         , centeredCaption (toString (countFlower grid coordinate))
+        , hexagon "highlight"
         , flowerNbhdPolygon overlay
         ]
 
@@ -357,3 +346,37 @@ atCoordinate coordinate =
                 )
             ++ ")"
         )
+
+
+{-| This svg informs the player about the current click type (reveal, mark mine)
+and allows them to change it.
+-}
+intentDisplay : ClickType -> Svg Msg
+intentDisplay clickType =
+    let
+        ( className, newClickType ) =
+            case clickType of
+                RevealEmpty ->
+                    ( "", RevealMine )
+
+                RevealMine ->
+                    ( "flipped", RevealEmpty )
+    in
+        svg
+            [ Html.Attributes.id "clickType"
+            , Svg.Attributes.class className
+            , Svg.Events.onClick (SetClickType newClickType)
+            , viewBox "-1.4 -1.2 2.8 2.4"
+            , preserveAspectRatio "xMidYMid meet"
+            ]
+            [ Svg.g
+                [ Svg.Attributes.class "right-click-type"
+                , Svg.Attributes.transform "translate(0.2, -0.1)"
+                ]
+                [ hexagon "hex" ]
+            , Svg.g
+                [ Svg.Attributes.class "left-click-type"
+                , Svg.Attributes.transform "translate(-0.2, 0.1)"
+                ]
+                [ hexagon "hex" ]
+            ]

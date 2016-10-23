@@ -4,7 +4,8 @@ html, head, body {
 }
 
 #levelView {
-    width: 100%;
+    width: 90%;
+    float: right;
 }
 
 .cell:hover polygon.highlight {
@@ -41,9 +42,31 @@ polygon.highlight {
     opacity: 0;
     transform: scale(0.1);
     transition: transform 200ms ease-in-out, opacity 200ms ease-in-out;
+    pointer-events:none;
 }
 
 .flower-active {
     opacity: 0.5;
     transform: scale(1);
+}
+
+#clickType {
+  width: 10%;
+  height: 200px;
+}
+
+#clickType .left-click-type {
+    fill: lightgray;
+}
+
+#clickType .right-click-type {
+    fill: blue;
+}
+
+#clickType.flipped .left-click-type {
+    fill: blue;
+}
+
+#clickType.flipped .right-click-type {
+    fill: lightgray;
 }
