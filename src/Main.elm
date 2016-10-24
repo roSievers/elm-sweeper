@@ -66,6 +66,7 @@ init =
                 [ ( ( 1, 2 ), { content = Count, revealed = True } )
                 , ( ( 2, 2 ), { content = Mine, revealed = True } )
                 , ( ( 3, 2 ), { content = Empty, revealed = True } )
+                , ( ( 3, 1 ), { content = Mine, revealed = False } )
                 , ( ( 4, 2 ), { content = Empty, revealed = False } )
                 , ( ( 5, 2 ), { content = Count, revealed = False } )
                 , ( ( 1, 3 ), { content = Count, revealed = False } )
@@ -73,12 +74,12 @@ init =
                 , ( ( 3, 3 ), { content = Flower False, revealed = False } )
                 , ( ( 4, 3 ), { content = Mine, revealed = False } )
                 , ( ( 5, 3 ), { content = Mine, revealed = False } )
-                , ( ( 6, 3 ), { content = Mine, revealed = False } )
+                , ( ( 6, 3 ), { content = Flower False, revealed = False } )
                 , ( ( 1, 4 ), { content = Count, revealed = False } )
                 , ( ( 2, 4 ), { content = Count, revealed = False } )
                 , ( ( 3, 4 ), { content = Count, revealed = False } )
                 , ( ( 4, 4 ), { content = Count, revealed = False } )
-                , ( ( 5, 4 ), { content = Count, revealed = False } )
+                , ( ( 5, 4 ), { content = Empty, revealed = False } )
                 ]
         , intent = RevealEmpty
         , mistakes = 0
@@ -156,6 +157,8 @@ view model =
     div []
         [ viewLevel model
         , Html.br [] []
+        , Html.text <| "Remaining: " ++ (toString <| Grid.count isHiddenMine model.level)
+        , Html.br [] []
         , Html.text ("Mistakes: " ++ toString model.mistakes)
         , Html.br [] []
         , intentDisplay model.intent
@@ -172,7 +175,8 @@ viewLevel model =
     in
         svg
             [ Html.Attributes.id "levelView", width "1000", height "800", visibleArea, preserveAspectRatio "xMidYMid meet" ]
-            (Grid.view (cellSvg model) model.level)
+            [ Grid.view (cellSvg model) model.level
+            ]
 
 
 levelBox : Grid.BoundingBox -> String
@@ -186,23 +190,23 @@ levelBox box =
         ++ toString (2 * toFloat (box.bottom - box.top) + 4)
 
 
-cellSvg : Model -> Grid Cell -> Coordinate -> Cell -> Svg Msg
+cellSvg : Model -> Grid Cell -> Coordinate -> Cell -> Grid.SvgStack Msg
 cellSvg model grid coordinate cell =
     if cell.revealed then
         case cell.content of
             Empty ->
-                emptyCell coordinate
+                emptyCell coordinate |> Grid.singleton
 
             Count ->
-                counterCell grid coordinate cell
+                counterCell grid coordinate cell |> Grid.singleton
 
             Mine ->
-                mineCell coordinate
+                mineCell coordinate |> Grid.singleton
 
             Flower overlay ->
                 flowerCell grid coordinate cell overlay
     else
-        hiddenCell model.intent coordinate cell
+        hiddenCell model.intent coordinate cell |> Grid.singleton
 
 
 mineCell : Coordinate -> Svg Msg
@@ -257,18 +261,28 @@ counterCell grid coordinate cell =
     withCaption coordinate "cell" "hex lightgray" (toString (countNbhd grid coordinate))
 
 
-flowerCell : Grid Cell -> Coordinate -> Cell -> Bool -> Svg Msg
-flowerCell grid coordinate cell overlay =
-    Svg.g
-        [ atCoordinate coordinate
-        , Svg.Attributes.class "cell flower"
-        , Svg.Events.onClick (ToggleFlower coordinate cell (not overlay))
-        ]
-        [ hexagon "hex mine"
-        , centeredCaption (toString (countFlower grid coordinate))
-        , hexagon "highlight"
-        , flowerNbhdPolygon overlay
-        ]
+flowerCell : Grid Cell -> Coordinate -> Cell -> Bool -> Grid.SvgStack Msg
+flowerCell grid coordinate cell hasOverlay =
+    let
+        position =
+            atCoordinate coordinate
+
+        base =
+            Svg.g
+                [ position
+                , Svg.Attributes.class "cell flower"
+                , Svg.Events.onClick (ToggleFlower coordinate cell (not hasOverlay))
+                ]
+                [ hexagon "hex mine"
+                , centeredCaption (toString (countFlower grid coordinate))
+                , hexagon "highlight"
+                ]
+
+        overlayPolygon =
+            Svg.g [ position ] [ flowerNbhdPolygon hasOverlay ]
+    in
+        Grid.singleton base
+            |> Grid.setOverlay overlayPolygon
 
 
 {-| This function creates a hexagon with a sidelength of 0.9 as a svg polygon.
@@ -333,6 +347,11 @@ isMine content =
 
         Flower _ ->
             True
+
+
+isHiddenMine : Cell -> Bool
+isHiddenMine cell =
+    isMine cell.content && (not cell.revealed)
 
 
 countNbhd : Grid Cell -> Coordinate -> Int

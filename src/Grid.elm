@@ -2,6 +2,8 @@ module Grid exposing (..)
 
 import Dict exposing (Dict)
 import List
+import Svg exposing (Svg)
+import Svg.Keyed
 
 
 {-| Implements a hexagonal grid type.
@@ -47,6 +49,19 @@ insert coordinate value grid =
     Dict.insert ( coordinate.x, coordinate.y ) value grid
 
 
+count : (a -> Bool) -> Grid a -> Int
+count doesCount grid =
+    Dict.foldl
+        (\_ a accumulator ->
+            if doesCount a then
+                accumulator + 1
+            else
+                accumulator
+        )
+        0
+        grid
+
+
 type alias BoundingBox =
     { top : Int
     , right : Int
@@ -84,12 +99,49 @@ boundingBox grid =
             (List.minimum xCoords)
 
 
-view : (Grid a -> Coordinate -> a -> output) -> Grid a -> List output
+type alias SvgStack msg =
+    ( Svg msg, Maybe (Svg msg) )
+
+
+type alias RenderStack msg =
+    ( List (String, Svg msg), List (String, Svg msg) )
+
+
+singleton : Svg msg -> SvgStack msg
+singleton svg =
+    ( svg, Nothing )
+
+
+setOverlay : Svg msg -> SvgStack msg -> SvgStack msg
+setOverlay overlay ( base, _ ) =
+    ( base, Just overlay )
+
+
+addToStack : Coordinate -> SvgStack msg -> RenderStack msg -> RenderStack msg
+addToStack coordinate ( base, maybeOverlay ) ( bases, overlays ) =
+    ( (toString coordinate, base) :: bases
+    , case maybeOverlay of
+        Nothing ->
+            overlays
+
+        Just overlay ->
+            ("overlay-" ++ toString coordinate, overlay) :: overlays
+    )
+
+
+collapseStack : RenderStack msg -> List (String, Svg msg)
+collapseStack (bases, overlays) =
+    bases ++ overlays
+
+
+view : (Grid a -> Coordinate -> a -> SvgStack msg) -> Grid a -> Svg msg
 view cellSvg grid =
     Dict.foldl
-        (\coord a list -> (cellSvg grid (toCoordinate coord) a) :: list)
-        []
+        (\coord a -> addToStack (toCoordinate coord) (cellSvg grid (toCoordinate coord) a))
+        ([], [])
         grid
+        |> collapseStack
+        |> Svg.Keyed.node "g" []
 
 
 getRelative : Coordinate -> Coordinate -> Grid a -> Maybe a
