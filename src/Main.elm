@@ -36,6 +36,7 @@ type alias Coordinate =
 type CellContent
     = Empty
     | Count
+    | TypedCount
     | Mine
     | Flower Bool
 
@@ -43,6 +44,7 @@ type CellContent
 type Cell
     = GameCell CellData
     | RowCount Direction
+    | TypedRowCount Direction
 
 
 type alias CellData =
@@ -73,20 +75,21 @@ init =
                 , ( ( 3, 2 ), GameCell { content = Empty, revealed = False } )
                 , ( ( 3, 1 ), GameCell { content = Mine, revealed = False } )
                 , ( ( 4, 2 ), GameCell { content = Empty, revealed = False } )
-                , ( ( 5, 2 ), GameCell { content = Count, revealed = False } )
+                , ( ( 5, 2 ), GameCell { content = TypedCount, revealed = False } )
                 , ( ( 1, 3 ), GameCell { content = Count, revealed = False } )
-                , ( ( 2, 3 ), GameCell { content = Count, revealed = False } )
+                , ( ( 2, 3 ), GameCell { content = TypedCount, revealed = False } )
                 , ( ( 3, 3 ), GameCell { content = Flower False, revealed = False } )
                 , ( ( 4, 3 ), GameCell { content = Mine, revealed = False } )
                 , ( ( 5, 3 ), GameCell { content = Mine, revealed = False } )
                 , ( ( 6, 3 ), GameCell { content = Flower False, revealed = False } )
                 , ( ( 1, 4 ), GameCell { content = Count, revealed = False } )
                 , ( ( 2, 4 ), GameCell { content = Count, revealed = False } )
-                , ( ( 3, 4 ), GameCell { content = Count, revealed = False } )
+                , ( ( 3, 4 ), GameCell { content = Empty, revealed = False } )
                 , ( ( 4, 4 ), GameCell { content = Count, revealed = False } )
                 , ( ( 5, 4 ), GameCell { content = Empty, revealed = False } )
-                , ( ( 5, 1 ), RowCount DownLeft )
-                , ( ( 2, 1 ), RowCount DownRight )
+                , ( ( 4, 5 ), GameCell { content = Mine, revealed = False } )
+                , ( ( 4, 1 ), TypedRowCount Down )
+                , ( ( 2, 1 ), TypedRowCount DownRight )
                 , ( ( 1, 1 ), RowCount Down )
                 ]
         , intent = RevealEmpty
@@ -210,6 +213,9 @@ cellSvg model grid coordinate cell =
                     Count ->
                         counterCell grid coordinate cellData |> Grid.singleton
 
+                    TypedCount ->
+                        typedCounterCell grid coordinate cellData |> Grid.singleton
+
                     Mine ->
                         mineCell coordinate |> Grid.singleton
 
@@ -220,6 +226,9 @@ cellSvg model grid coordinate cell =
 
         RowCount direction ->
             rowCountCell grid coordinate direction
+
+        TypedRowCount direction ->
+            typedRowCountCell grid coordinate direction
 
 
 mineCell : Coordinate -> Svg Msg
@@ -274,6 +283,26 @@ counterCell grid coordinate cell =
     withCaption coordinate "cell" "hex lightgray" (toString (countNbhd grid coordinate))
 
 
+typedCounterCell : Grid Cell -> Coordinate -> CellData -> Svg msg
+typedCounterCell grid coordinate cell =
+    let
+        count =
+            countNbhd grid coordinate
+
+        nbhdType =
+            typeNbhd grid coordinate
+
+        caption =
+            case nbhdType of
+                ConnectedNbhd ->
+                    "{" ++ toString count ++ "}"
+
+                DisjointNbhd ->
+                    "-" ++ toString count ++ "-"
+    in
+        withCaption coordinate "cell" "hex lightgray" caption
+
+
 flowerCell : Grid Cell -> Coordinate -> CellData -> Bool -> Grid.SvgStack Msg
 flowerCell grid coordinate cell hasOverlay =
     let
@@ -313,6 +342,41 @@ rowCountCell grid coordinate direction =
             ]
         ]
         |> Grid.singleton
+
+
+
+-- TODO
+
+
+typedRowCountCell : Grid Cell -> Coordinate -> Direction -> Grid.SvgStack Msg
+typedRowCountCell grid coordinate direction =
+    let
+        count =
+            (Grid.boundingBox grid)
+                |> Maybe.map (\bounds -> countInDirection bounds grid coordinate direction)
+                |> Maybe.withDefault 0
+
+        nbhdType =
+            (Grid.boundingBox grid)
+                |> Maybe.map (\bounds -> typeInDirection bounds grid coordinate direction)
+                |> Maybe.withDefault ConnectedNbhd
+
+        caption =
+            case nbhdType of
+                ConnectedNbhd ->
+                    "{" ++ toString count ++ "}"
+
+                DisjointNbhd ->
+                    "-" ++ toString count ++ "-"
+    in
+        Svg.g
+            [ atCoordinate coordinate
+            , Svg.Attributes.class "row-count"
+            ]
+            [ Svg.g [ rotation direction ]
+                [ bottomCaption caption ]
+            ]
+            |> Grid.singleton
 
 
 
@@ -376,6 +440,10 @@ bottomCaption caption =
         [ Svg.text caption ]
 
 
+
+-- Counting Mines
+
+
 isMineContent : CellContent -> Bool
 isMineContent content =
     case content of
@@ -383,6 +451,9 @@ isMineContent content =
             False
 
         Count ->
+            False
+
+        TypedCount ->
             False
 
         Mine ->
@@ -401,6 +472,9 @@ isMine cell =
         RowCount _ ->
             False
 
+        TypedRowCount _ ->
+            False
+
 
 isHiddenMine : Cell -> Bool
 isHiddenMine cell =
@@ -411,11 +485,40 @@ isHiddenMine cell =
         RowCount _ ->
             False
 
+        TypedRowCount _ ->
+            False
+
 
 countNbhd : Grid Cell -> Coordinate -> Int
 countNbhd grid coordinate =
     Grid.getNbhd coordinate grid
+        |> List.filterMap identity
         |> List.filter (\cell -> isMine cell)
+        |> List.length
+
+
+type NbhdType
+    = ConnectedNbhd
+    | DisjointNbhd
+
+
+typeNbhd : Grid Cell -> Coordinate -> NbhdType
+typeNbhd grid coordinate =
+    Grid.getNbhd coordinate grid
+        |> List.map (Maybe.map isMine >> Maybe.withDefault False)
+        |> changes
+        |> (\count ->
+                if count <= 2 then
+                    ConnectedNbhd
+                else
+                    DisjointNbhd
+           )
+
+
+changes : List Bool -> Int
+changes list =
+    List.map2 (/=) list (List.drop 1 list)
+        |> List.filter identity
         |> List.length
 
 
@@ -447,6 +550,37 @@ countInDirection bounds grid basePoint direction =
         direction
         grid
         basePoint
+
+
+typeInDirection : Grid.BoundingBox -> Grid Cell -> Coordinate -> Direction -> NbhdType
+typeInDirection bounds grid basePoint direction =
+    Grid.foldDirected
+        (\coordinate maybeCell accumulator ->
+            if Grid.isInside bounds coordinate then
+                case maybeCell of
+                    Nothing ->
+                        Just accumulator
+
+                    Just cell ->
+                        if isMine cell then
+                            Just (True :: accumulator)
+                        else
+                            Just (False :: accumulator)
+            else
+                Nothing
+        )
+        []
+        direction
+        grid
+        basePoint
+        |> (::) False
+        |> changes
+        |> (\count ->
+                if count <= 2 then
+                    ConnectedNbhd
+                else
+                    DisjointNbhd
+           )
 
 
 atCoordinate : Coordinate -> Svg.Attribute msg

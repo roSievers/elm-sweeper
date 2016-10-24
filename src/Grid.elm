@@ -218,7 +218,7 @@ getRelative origin delta grid =
         Dict.get coord grid
 
 
-getNbhd : Coordinate -> Grid a -> List a
+getNbhd : Coordinate -> Grid a -> List (Maybe a)
 getNbhd center grid =
     let
         nbhd =
@@ -241,7 +241,6 @@ getNbhd center grid =
     in
         nbhd
             |> List.map (\delta -> getRelative center delta grid)
-            |> List.filterMap identity
 
 
 getNbhd2 : Coordinate -> Grid a -> List a
