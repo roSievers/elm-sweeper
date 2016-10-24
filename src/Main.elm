@@ -46,14 +46,14 @@ type alias Cell =
     }
 
 
-type ClickType
+type Intent
     = RevealEmpty
     | RevealMine
 
 
 type alias Model =
     { level : Grid Cell
-    , clickType : ClickType
+    , intent : Intent
     , mistakes : Int
     }
 
@@ -80,7 +80,7 @@ init =
                 , ( ( 4, 4 ), { content = Count, revealed = False } )
                 , ( ( 5, 4 ), { content = Count, revealed = False } )
                 ]
-        , clickType = RevealEmpty
+        , intent = RevealEmpty
         , mistakes = 0
         }
 
@@ -90,16 +90,16 @@ init =
 
 
 type Msg
-    = Reveal ClickType Coordinate Cell
+    = Reveal Intent Coordinate Cell
     | ToggleFlower Coordinate Cell Bool
-    | SetClickType ClickType
+    | SetIntent Intent
 
 
 update : Msg -> Model -> Return Msg Model
 update action model =
     case Debug.log "msg" action of
-        Reveal clickType coordinate cell ->
-            handleReveal clickType coordinate cell model
+        Reveal intent coordinate cell ->
+            handleReveal intent coordinate cell model
                 |> Return.singleton
 
         ToggleFlower coordinate cell overlay ->
@@ -112,19 +112,19 @@ update action model =
             }
                 |> Return.singleton
 
-        SetClickType clickType ->
+        SetIntent intent ->
             Return.singleton
-                { model | clickType = clickType }
+                { model | intent = intent }
 
 
-handleReveal : ClickType -> Coordinate -> Cell -> Model -> Model
-handleReveal clickType coordinate cell model =
+handleReveal : Intent -> Coordinate -> Cell -> Model -> Model
+handleReveal intent coordinate cell model =
     let
         mineClicked =
             isMine cell.content
 
         mineDesired =
-            clickType == RevealMine
+            intent == RevealMine
     in
         case mineClicked == mineDesired of
             True ->
@@ -158,7 +158,7 @@ view model =
         , Html.br [] []
         , Html.text ("Mistakes: " ++ toString model.mistakes)
         , Html.br [] []
-        , intentDisplay model.clickType
+        , intentDisplay model.intent
         ]
 
 
@@ -202,7 +202,7 @@ cellSvg model grid coordinate cell =
             Flower overlay ->
                 flowerCell grid coordinate cell overlay
     else
-        hiddenCell model.clickType coordinate cell
+        hiddenCell model.intent coordinate cell
 
 
 mineCell : Coordinate -> Svg Msg
@@ -215,12 +215,12 @@ mineCell coordinate =
         ]
 
 
-hiddenCell : ClickType -> Coordinate -> Cell -> Svg Msg
-hiddenCell clickType coordinate cell =
+hiddenCell : Intent -> Coordinate -> Cell -> Svg Msg
+hiddenCell intent coordinate cell =
     Svg.g
         [ atCoordinate coordinate
-        , Svg.Events.onClick (Reveal clickType coordinate cell)
-        , onRightClick (Reveal (flipClickType clickType) coordinate cell)
+        , Svg.Events.onClick (Reveal intent coordinate cell)
+        , onRightClick (Reveal (flipIntent intent) coordinate cell)
         , Svg.Attributes.class "cell"
         ]
         [ hexagon "hex hidden-cell"
@@ -237,9 +237,9 @@ onRightClick message =
         (Json.Decode.succeed message)
 
 
-flipClickType : ClickType -> ClickType
-flipClickType clickType =
-    case clickType of
+flipIntent : Intent -> Intent
+flipIntent intent =
+    case intent of
         RevealEmpty ->
             RevealMine
 
@@ -368,14 +368,14 @@ atCoordinate coordinate =
         )
 
 
-{-| This svg informs the player about the current click type (reveal, mark mine)
+{-| This svg informs the player about the current intent (reveal, mark mine)
 and allows them to change it.
 -}
-intentDisplay : ClickType -> Svg Msg
-intentDisplay clickType =
+intentDisplay : Intent -> Svg Msg
+intentDisplay intent =
     let
-        ( className, newClickType ) =
-            case clickType of
+        ( className, newIntent ) =
+            case intent of
                 RevealEmpty ->
                     ( "", RevealMine )
 
@@ -383,19 +383,19 @@ intentDisplay clickType =
                     ( "flipped", RevealEmpty )
     in
         svg
-            [ Html.Attributes.id "clickType"
+            [ Html.Attributes.id "intent"
             , Svg.Attributes.class className
-            , Svg.Events.onClick (SetClickType newClickType)
+            , Svg.Events.onClick (SetIntent newIntent)
             , viewBox "-1.4 -1.2 2.8 2.4"
             , preserveAspectRatio "xMidYMid meet"
             ]
             [ Svg.g
-                [ Svg.Attributes.class "right-click-type"
+                [ Svg.Attributes.class "right-click-intent"
                 , Svg.Attributes.transform "translate(0.2, -0.1)"
                 ]
                 [ hexagon "hex" ]
             , Svg.g
-                [ Svg.Attributes.class "left-click-type"
+                [ Svg.Attributes.class "left-click-intent"
                 , Svg.Attributes.transform "translate(-0.2, 0.1)"
                 ]
                 [ hexagon "hex" ]

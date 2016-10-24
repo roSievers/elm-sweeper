@@ -50,23 +50,23 @@ polygon.highlight {
     transform: scale(1);
 }
 
-#clickType {
+#intent {
     width: 10%;
     height: 200px;
 }
 
-#clickType .left-click-type {
+#intent .left-click-intent {
     fill: lightgray;
 }
 
-#clickType .right-click-type {
+#intent .right-click-intent {
     fill: blue;
 }
 
-#clickType.flipped .left-click-type {
+#intent.flipped .left-click-intent {
     fill: blue;
 }
 
-#clickType.flipped .right-click-type {
+#intent.flipped .right-click-intent {
     fill: lightgray;
 }
