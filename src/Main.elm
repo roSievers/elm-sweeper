@@ -10,7 +10,7 @@ import Svg.Attributes exposing (..)
 import Svg.Events
 import Json.Decode
 import Dict exposing (Dict)
-import Grid exposing (Grid)
+import Grid exposing (Grid, Direction(..))
 import Debug
 
 
@@ -40,7 +40,12 @@ type CellContent
     | Flower Bool
 
 
-type alias Cell =
+type Cell
+    = GameCell CellData
+    | RowCount Direction
+
+
+type alias CellData =
     { content : CellContent
     , revealed : Bool
     }
@@ -63,23 +68,26 @@ init =
     Return.singleton
         { level =
             Dict.fromList
-                [ ( ( 1, 2 ), { content = Count, revealed = True } )
-                , ( ( 2, 2 ), { content = Mine, revealed = True } )
-                , ( ( 3, 2 ), { content = Empty, revealed = True } )
-                , ( ( 3, 1 ), { content = Mine, revealed = False } )
-                , ( ( 4, 2 ), { content = Empty, revealed = False } )
-                , ( ( 5, 2 ), { content = Count, revealed = False } )
-                , ( ( 1, 3 ), { content = Count, revealed = False } )
-                , ( ( 2, 3 ), { content = Count, revealed = False } )
-                , ( ( 3, 3 ), { content = Flower False, revealed = False } )
-                , ( ( 4, 3 ), { content = Mine, revealed = False } )
-                , ( ( 5, 3 ), { content = Mine, revealed = False } )
-                , ( ( 6, 3 ), { content = Flower False, revealed = False } )
-                , ( ( 1, 4 ), { content = Count, revealed = False } )
-                , ( ( 2, 4 ), { content = Count, revealed = False } )
-                , ( ( 3, 4 ), { content = Count, revealed = False } )
-                , ( ( 4, 4 ), { content = Count, revealed = False } )
-                , ( ( 5, 4 ), { content = Empty, revealed = False } )
+                [ ( ( 1, 2 ), GameCell { content = Empty, revealed = True } )
+                , ( ( 2, 2 ), GameCell { content = Mine, revealed = True } )
+                , ( ( 3, 2 ), GameCell { content = Empty, revealed = False } )
+                , ( ( 3, 1 ), GameCell { content = Mine, revealed = False } )
+                , ( ( 4, 2 ), GameCell { content = Empty, revealed = False } )
+                , ( ( 5, 2 ), GameCell { content = Count, revealed = False } )
+                , ( ( 1, 3 ), GameCell { content = Count, revealed = False } )
+                , ( ( 2, 3 ), GameCell { content = Count, revealed = False } )
+                , ( ( 3, 3 ), GameCell { content = Flower False, revealed = False } )
+                , ( ( 4, 3 ), GameCell { content = Mine, revealed = False } )
+                , ( ( 5, 3 ), GameCell { content = Mine, revealed = False } )
+                , ( ( 6, 3 ), GameCell { content = Flower False, revealed = False } )
+                , ( ( 1, 4 ), GameCell { content = Count, revealed = False } )
+                , ( ( 2, 4 ), GameCell { content = Count, revealed = False } )
+                , ( ( 3, 4 ), GameCell { content = Count, revealed = False } )
+                , ( ( 4, 4 ), GameCell { content = Count, revealed = False } )
+                , ( ( 5, 4 ), GameCell { content = Empty, revealed = False } )
+                , ( ( 5, 1 ), RowCount DownLeft )
+                , ( ( 2, 1 ), RowCount DownRight )
+                , ( ( 1, 1 ), RowCount Down )
                 ]
         , intent = RevealEmpty
         , mistakes = 0
@@ -91,8 +99,8 @@ init =
 
 
 type Msg
-    = Reveal Intent Coordinate Cell
-    | ToggleFlower Coordinate Cell Bool
+    = Reveal Intent Coordinate CellData
+    | ToggleFlower Coordinate CellData Bool
     | SetIntent Intent
 
 
@@ -108,7 +116,7 @@ update action model =
                 | level =
                     Grid.insert
                         coordinate
-                        { cell | content = Flower overlay }
+                        (GameCell { content = Flower overlay, revealed = True })
                         model.level
             }
                 |> Return.singleton
@@ -118,11 +126,11 @@ update action model =
                 { model | intent = intent }
 
 
-handleReveal : Intent -> Coordinate -> Cell -> Model -> Model
+handleReveal : Intent -> Coordinate -> CellData -> Model -> Model
 handleReveal intent coordinate cell model =
     let
         mineClicked =
-            isMine cell.content
+            isMineContent cell.content
 
         mineDesired =
             intent == RevealMine
@@ -130,7 +138,7 @@ handleReveal intent coordinate cell model =
         case mineClicked == mineDesired of
             True ->
                 { model
-                    | level = Grid.insert coordinate { cell | revealed = True } model.level
+                    | level = Grid.insert coordinate (GameCell { cell | revealed = True }) model.level
                 }
 
             False ->
@@ -192,21 +200,26 @@ levelBox box =
 
 cellSvg : Model -> Grid Cell -> Coordinate -> Cell -> Grid.SvgStack Msg
 cellSvg model grid coordinate cell =
-    if cell.revealed then
-        case cell.content of
-            Empty ->
-                emptyCell coordinate |> Grid.singleton
+    case cell of
+        GameCell cellData ->
+            if cellData.revealed then
+                case cellData.content of
+                    Empty ->
+                        emptyCell coordinate |> Grid.singleton
 
-            Count ->
-                counterCell grid coordinate cell |> Grid.singleton
+                    Count ->
+                        counterCell grid coordinate cellData |> Grid.singleton
 
-            Mine ->
-                mineCell coordinate |> Grid.singleton
+                    Mine ->
+                        mineCell coordinate |> Grid.singleton
 
-            Flower overlay ->
-                flowerCell grid coordinate cell overlay
-    else
-        hiddenCell model.intent coordinate cell |> Grid.singleton
+                    Flower overlay ->
+                        flowerCell grid coordinate cellData overlay
+            else
+                hiddenCell model.intent coordinate cellData |> Grid.singleton
+
+        RowCount direction ->
+            rowCountCell grid coordinate direction
 
 
 mineCell : Coordinate -> Svg Msg
@@ -219,7 +232,7 @@ mineCell coordinate =
         ]
 
 
-hiddenCell : Intent -> Coordinate -> Cell -> Svg Msg
+hiddenCell : Intent -> Coordinate -> CellData -> Svg Msg
 hiddenCell intent coordinate cell =
     Svg.g
         [ atCoordinate coordinate
@@ -256,12 +269,12 @@ emptyCell coordinate =
     withCaption coordinate "cell" "hex lightgray" "?"
 
 
-counterCell : Grid Cell -> Coordinate -> Cell -> Svg msg
+counterCell : Grid Cell -> Coordinate -> CellData -> Svg msg
 counterCell grid coordinate cell =
     withCaption coordinate "cell" "hex lightgray" (toString (countNbhd grid coordinate))
 
 
-flowerCell : Grid Cell -> Coordinate -> Cell -> Bool -> Grid.SvgStack Msg
+flowerCell : Grid Cell -> Coordinate -> CellData -> Bool -> Grid.SvgStack Msg
 flowerCell grid coordinate cell hasOverlay =
     let
         position =
@@ -283,6 +296,27 @@ flowerCell grid coordinate cell hasOverlay =
     in
         Grid.singleton base
             |> Grid.setOverlay overlayPolygon
+
+
+rowCountCell : Grid Cell -> Coordinate -> Direction -> Grid.SvgStack Msg
+rowCountCell grid coordinate direction =
+    Svg.g
+        [ atCoordinate coordinate
+        , Svg.Attributes.class "row-count"
+        ]
+        [ Svg.g [ rotation direction ]
+            [ (Grid.boundingBox grid)
+                |> Maybe.map (\bounds -> countInDirection bounds grid coordinate direction)
+                |> Maybe.withDefault 0
+                |> toString
+                |> bottomCaption
+            ]
+        ]
+        |> Grid.singleton
+
+
+
+-- Helper functions used by the various cell view functions
 
 
 {-| This function creates a hexagon with a sidelength of 0.9 as a svg polygon.
@@ -333,8 +367,17 @@ centeredCaption caption =
         [ Svg.text caption ]
 
 
-isMine : CellContent -> Bool
-isMine content =
+bottomCaption : String -> Svg msg
+bottomCaption caption =
+    Svg.text'
+        [ Svg.Attributes.style "text-anchor:middle;font-size:0.4;"
+        , Svg.Attributes.y "0.75"
+        ]
+        [ Svg.text caption ]
+
+
+isMineContent : CellContent -> Bool
+isMineContent content =
     case content of
         Empty ->
             False
@@ -349,23 +392,61 @@ isMine content =
             True
 
 
+isMine : Cell -> Bool
+isMine cell =
+    case cell of
+        GameCell cellData ->
+            isMineContent cellData.content
+
+        RowCount _ ->
+            False
+
+
 isHiddenMine : Cell -> Bool
 isHiddenMine cell =
-    isMine cell.content && (not cell.revealed)
+    case cell of
+        GameCell cellData ->
+            isMineContent cellData.content && (not cellData.revealed)
+
+        RowCount _ ->
+            False
 
 
 countNbhd : Grid Cell -> Coordinate -> Int
 countNbhd grid coordinate =
     Grid.getNbhd coordinate grid
-        |> List.filter (\cell -> isMine cell.content)
+        |> List.filter (\cell -> isMine cell)
         |> List.length
 
 
 countFlower : Grid Cell -> Coordinate -> Int
 countFlower grid coordinate =
     Grid.getNbhd2 coordinate grid
-        |> List.filter (\cell -> isMine cell.content)
+        |> List.filter (\cell -> isMine cell)
         |> List.length
+
+
+countInDirection : Grid.BoundingBox -> Grid Cell -> Coordinate -> Direction -> Int
+countInDirection bounds grid basePoint direction =
+    Grid.foldDirected
+        (\coordinate maybeCell accumulator ->
+            if Grid.isInside bounds coordinate then
+                case maybeCell of
+                    Nothing ->
+                        Just accumulator
+
+                    Just cell ->
+                        if isMine cell then
+                            Just (accumulator + 1)
+                        else
+                            Just accumulator
+            else
+                Nothing
+        )
+        0
+        direction
+        grid
+        basePoint
 
 
 atCoordinate : Coordinate -> Svg.Attribute msg
@@ -385,6 +466,23 @@ atCoordinate coordinate =
                 )
             ++ ")"
         )
+
+
+rotation : Direction -> Svg.Attribute msg
+rotation direction =
+    case direction of
+        DownLeft ->
+            Svg.Attributes.transform "rotate(60)"
+
+        Down ->
+            Svg.Attributes.transform "rotate(0)"
+
+        DownRight ->
+            Svg.Attributes.transform "rotate(-60)"
+
+
+
+-- Intent Display
 
 
 {-| This svg informs the player about the current intent (reveal, mark mine)

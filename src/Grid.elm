@@ -18,6 +18,12 @@ type alias Coordinate =
     }
 
 
+type Direction
+    = Down
+    | DownLeft
+    | DownRight
+
+
 {-| Working with ( Int, Int ) inside the Grid module works around the missing
 comparable typeclass of records in elm. All exposed functions should only talk
 using Coordinate.
@@ -99,12 +105,24 @@ boundingBox grid =
             (List.minimum xCoords)
 
 
+isInside : BoundingBox -> Coordinate -> Bool
+isInside box coordinate =
+    (box.top <= coordinate.y)
+        && (box.right >= coordinate.x)
+        && (box.bottom >= coordinate.y)
+        && (box.left <= coordinate.x)
+
+
+
+-- View functions and helpers
+
+
 type alias SvgStack msg =
     ( Svg msg, Maybe (Svg msg) )
 
 
 type alias RenderStack msg =
-    ( List (String, Svg msg), List (String, Svg msg) )
+    ( List ( String, Svg msg ), List ( String, Svg msg ) )
 
 
 singleton : Svg msg -> SvgStack msg
@@ -119,18 +137,18 @@ setOverlay overlay ( base, _ ) =
 
 addToStack : Coordinate -> SvgStack msg -> RenderStack msg -> RenderStack msg
 addToStack coordinate ( base, maybeOverlay ) ( bases, overlays ) =
-    ( (toString coordinate, base) :: bases
+    ( ( toString coordinate, base ) :: bases
     , case maybeOverlay of
         Nothing ->
             overlays
 
         Just overlay ->
-            ("overlay-" ++ toString coordinate, overlay) :: overlays
+            ( "overlay-" ++ toString coordinate, overlay ) :: overlays
     )
 
 
-collapseStack : RenderStack msg -> List (String, Svg msg)
-collapseStack (bases, overlays) =
+collapseStack : RenderStack msg -> List ( String, Svg msg )
+collapseStack ( bases, overlays ) =
     bases ++ overlays
 
 
@@ -138,10 +156,57 @@ view : (Grid a -> Coordinate -> a -> SvgStack msg) -> Grid a -> Svg msg
 view cellSvg grid =
     Dict.foldl
         (\coord a -> addToStack (toCoordinate coord) (cellSvg grid (toCoordinate coord) a))
-        ([], [])
+        ( [], [] )
         grid
         |> collapseStack
         |> Svg.Keyed.node "g" []
+
+
+
+-- Get (local) information about the Grid.
+
+
+moveDirection : Direction -> Coordinate -> Coordinate
+moveDirection direction coordinate =
+    case direction of
+        Down ->
+            { coordinate | y = coordinate.y + 1 }
+
+        DownRight ->
+            if coordinate.x % 2 == 0 then
+                { coordinate | x = coordinate.x + 1 }
+            else
+                { x = coordinate.x + 1, y = coordinate.y + 1 }
+
+        DownLeft ->
+            if coordinate.x % 2 == 0 then
+                { coordinate | x = coordinate.x - 1 }
+            else
+                { x = coordinate.x - 1, y = coordinate.y + 1 }
+
+
+{-| This fold function starts at a given coordinate and keeps moving
+in a direction until the accumulating function returns Nothing.
+Then the last Just value is returned.
+-}
+foldDirected :
+    (Coordinate -> Maybe a -> b -> Maybe b)
+    -> b
+    -> Direction
+    -> Grid a
+    -> Coordinate
+    -> b
+foldDirected fold init direction grid basePoint =
+    Dict.get ( basePoint.x, basePoint.y ) grid
+        |> (\a -> fold basePoint a init)
+        |> (\maybeB ->
+                case maybeB of
+                    Nothing ->
+                        init
+
+                    Just b ->
+                        foldDirected fold b direction grid (moveDirection direction basePoint)
+           )
 
 
 getRelative : Coordinate -> Coordinate -> Grid a -> Maybe a
