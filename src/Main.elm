@@ -34,6 +34,7 @@ type alias Model =
     { route : Route
     , currentGame : GameModel
     , pasteBox : String
+    , flippedControlls : Bool
     }
 
 
@@ -53,13 +54,13 @@ init =
         { route = InGame
         , currentGame = initExampleGame
         , pasteBox = ""
+        , flippedControlls = True
         }
 
 
 initExampleGame : GameModel
 initExampleGame =
     { level = ExampleLevel.grid1
-    , flippedControlls = True
     , mistakes = 0
     }
 
@@ -74,7 +75,7 @@ update action model =
         Reveal button coordinate ->
             model
                 |> modify gameModel
-                    (handleReveal button coordinate)
+                    (handleReveal model.flippedControlls button coordinate)
                 |> Return.singleton
 
         ToggleOverlay coordinate overlay ->
@@ -87,9 +88,7 @@ update action model =
                 |> Return.singleton
 
         FlipControlls ->
-            model
-                |> modify gameModel (\gModel -> { gModel | flippedControlls = not gModel.flippedControlls })
-                |> Return.singleton
+            Return.singleton { model | flippedControlls = not model.flippedControlls }
 
         SetRoute route ->
             Return.singleton { model | route = route }
@@ -107,8 +106,8 @@ update action model =
 -- Update helper functions used while ingame
 
 
-handleReveal : MouseButton -> Coordinate -> GameModel -> GameModel
-handleReveal button coordinate model =
+handleReveal : Bool -> MouseButton -> Coordinate -> GameModel -> GameModel
+handleReveal flippedControlls button coordinate model =
     Maybe.map
         (\cell ->
             let
@@ -116,7 +115,7 @@ handleReveal button coordinate model =
                     Cell.isMine cell
 
                 mineDesired =
-                    xor (button == LeftButton) model.flippedControlls
+                    xor (button == LeftButton) flippedControlls
             in
                 case mineClicked == mineDesired of
                     True ->
@@ -156,7 +155,7 @@ view : Model -> Html Msg
 view model =
     case model.route of
         InGame ->
-            GameView.gameView model.currentGame
+            GameView.gameView model.flippedControlls model.currentGame
 
         MainMenu ->
             mainMenuView model

@@ -13,7 +13,6 @@ type MouseButton
 
 type alias GameModel =
     { level : Grid Cell
-    , flippedControlls : Bool
     , mistakes : Int
     }
 

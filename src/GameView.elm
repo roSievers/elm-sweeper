@@ -14,8 +14,8 @@ import Cell exposing (Cell(..))
 import Counting exposing (..)
 
 
-gameView : GameModel -> Html Msg
-gameView model =
+gameView : Bool -> GameModel -> Html Msg
+gameView flippedControlls model =
     div []
         [ viewLevel model
         , Html.br [] []
@@ -23,7 +23,7 @@ gameView model =
         , Html.br [] []
         , Html.text ("Mistakes: " ++ toString model.mistakes)
         , Html.br [] []
-        , intentDisplay model.flippedControlls
+        , intentDisplay flippedControlls
         , Html.br [] []
         , Html.button [ Html.Events.onClick (SetRoute MainMenu) ] [ Html.text "Main Menu" ]
         ]
