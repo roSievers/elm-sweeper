@@ -70,17 +70,17 @@ polygon.highlight {
 }
 
 #intent .left-click-intent {
-    fill: lightgray;
+    fill: blue;
 }
 
 #intent .right-click-intent {
-    fill: blue;
+    fill: lightgray;
 }
 
 #intent.flipped .left-click-intent {
-    fill: blue;
+    fill: lightgray;
 }
 
 #intent.flipped .right-click-intent {
-    fill: lightgray;
+    fill: blue;
 }

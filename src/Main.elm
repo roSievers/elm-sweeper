@@ -8,9 +8,9 @@ import Return exposing (Return)
 import Dict exposing (Dict)
 import Grid exposing (Grid, Direction(..), Coordinate)
 import Types exposing (..)
+import Cell exposing (Cell)
 import ExampleLevel
 import GameView
-import Counting exposing (isMineContent)
 import Monocle.Lens as Lens exposing (Lens, modify)
 import Monocle.Optional as Optional
 import Monocle.Common exposing ((=>))
@@ -59,7 +59,7 @@ init =
 initExampleGame : GameModel
 initExampleGame =
     { level = ExampleLevel.grid1
-    , intent = RevealEmpty
+    , flippedControlls = True
     , mistakes = 0
     }
 
@@ -71,9 +71,10 @@ initExampleGame =
 update : Msg -> Model -> Return msg Model
 update action model =
     case action of
-        Reveal intent coordinate cell ->
+        Reveal button coordinate ->
             model
-                |> modify gameModel (handleReveal intent coordinate cell)
+                |> modify gameModel
+                    (handleReveal button coordinate)
                 |> Return.singleton
 
         ToggleOverlay coordinate overlay ->
@@ -82,12 +83,12 @@ update action model =
                     (Optional.fromLens (Lens.compose gameModel gameGrid)
                         => (Grid.at coordinate)
                     )
-                    (toggleOverlay overlay)
+                    (Cell.setOverlay overlay)
                 |> Return.singleton
 
-        SetIntent intent ->
+        FlipControlls ->
             model
-                |> modify gameModel (\gModel -> { gModel | intent = intent })
+                |> modify gameModel (\gModel -> { gModel | flippedControlls = not gModel.flippedControlls })
                 |> Return.singleton
 
         SetRoute route ->
@@ -106,43 +107,31 @@ update action model =
 -- Update helper functions used while ingame
 
 
-handleReveal : Intent -> Coordinate -> CellData -> GameModel -> GameModel
-handleReveal intent coordinate cell model =
-    let
-        mineClicked =
-            isMineContent cell.content
+handleReveal : MouseButton -> Coordinate -> GameModel -> GameModel
+handleReveal button coordinate model =
+    Maybe.map
+        (\cell ->
+            let
+                mineClicked =
+                    Cell.isMine cell
 
-        mineDesired =
-            intent == RevealMine
-    in
-        case mineClicked == mineDesired of
-            True ->
-                { model
-                    | level = Grid.insert coordinate (GameCell { cell | revealed = True }) model.level
-                }
+                mineDesired =
+                    xor (button == LeftButton) model.flippedControlls
+            in
+                case mineClicked == mineDesired of
+                    True ->
+                        Optional.modify
+                            ((Optional.fromLens gameGrid) => (Grid.at coordinate))
+                            Cell.reveal
+                            model
 
-            False ->
-                { model
-                    | mistakes = model.mistakes + 1
-                }
-
-
-toggleOverlay : Bool -> Cell -> Cell
-toggleOverlay overlay cell =
-    case cell of
-        GameCell cellData ->
-            case cellData.content of
-                Flower _ ->
-                    GameCell { cellData | content = Flower overlay }
-
-                _ ->
-                    GameCell cellData
-
-        RowCount direction _ ->
-            RowCount direction overlay
-
-        TypedRowCount direction _ ->
-            TypedRowCount direction overlay
+                    False ->
+                        { model
+                            | mistakes = model.mistakes + 1
+                        }
+        )
+        (Grid.get coordinate model.level)
+        |> Maybe.withDefault model
 
 
 setGrid : Grid Cell -> GameModel -> GameModel

@@ -19,7 +19,6 @@ Community made levels are collected on
 ### Elm Sweeper has
 
   - Nothing fancy yet ;-(
-  - Hexes on half y coordinates are forbidden.
 
 ### Elm Sweeper might someday have
 

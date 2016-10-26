@@ -5,6 +5,7 @@ module HexcellParser exposing (..)
 import Dict
 import Grid exposing (Grid, Direction(..))
 import Types exposing (..)
+import Cell exposing (Cell, reveal)
 import Combine exposing (..)
 import Combine.Char exposing (newline)
 import Combine.Infix exposing (..)
@@ -68,50 +69,50 @@ comments =
 emptyCell : Parser Cell
 emptyCell =
     or
-        (GameCell { content = Empty, revealed = False } <$ string "o.")
-        (GameCell { content = Empty, revealed = True } <$ string "O.")
+        (Cell.empty <$ string "o.")
+        (reveal Cell.empty <$ string "O.")
 
 
 countCell : Parser Cell
 countCell =
     or
-        (GameCell { content = Count, revealed = False } <$ string "o+")
-        (GameCell { content = Count, revealed = True } <$ string "O+")
+        (Cell.count <$ string "o+")
+        (reveal Cell.count <$ string "O+")
 
 
 typedCountCell : Parser Cell
 typedCountCell =
     or
-        (GameCell { content = TypedCount, revealed = False } <$ (string "oc" <|> string "on"))
-        (GameCell { content = TypedCount, revealed = True } <$ (string "Oc" <|> string "On"))
+        (Cell.typedCount <$ (string "oc" <|> string "on"))
+        (reveal Cell.typedCount <$ (string "Oc" <|> string "On"))
 
 
 mineCell : Parser Cell
 mineCell =
     or
-        (GameCell { content = Mine, revealed = False } <$ string "x.")
-        (GameCell { content = Mine, revealed = True } <$ string "X.")
+        (Cell.mine <$ string "x.")
+        (reveal Cell.mine <$ string "X.")
 
 
 flowerCell : Parser Cell
 flowerCell =
     or
-        (GameCell { content = Flower False, revealed = False } <$ string "x+")
-        (GameCell { content = Flower False, revealed = True } <$ string "X+")
+        (Cell.flower <$ string "x+")
+        (reveal Cell.flower <$ string "X+")
 
 
 rowCount : Parser Cell
 rowCount =
-    (RowCount DownLeft False <$ string "/+")
-        <|> (RowCount Down False <$ string "|+")
-        <|> (RowCount DownRight False <$ string "\\+")
+    (Cell.rowCount DownLeft <$ string "/+")
+        <|> (Cell.rowCount Down <$ string "|+")
+        <|> (Cell.rowCount DownRight <$ string "\\+")
 
 
 typedRowCount : Parser Cell
 typedRowCount =
-    (TypedRowCount DownLeft False <$ (string "/c" <|> string "/n"))
-        <|> (TypedRowCount Down False <$ (string "|c" <|> string "|n"))
-        <|> (TypedRowCount DownRight False <$ (string "\\c" <|> string "\\n"))
+    (Cell.typedRowCount DownLeft <$ (string "/c" <|> string "/n"))
+        <|> (Cell.typedRowCount Down <$ (string "|c" <|> string "|n"))
+        <|> (Cell.typedRowCount DownRight <$ (string "\\c" <|> string "\\n"))
 
 
 nothing : Parser (Maybe a)

@@ -10,6 +10,7 @@ import Svg.Events
 import Json.Decode
 import Grid exposing (Grid, Direction(..), Coordinate)
 import Types exposing (..)
+import Cell exposing (Cell(..))
 import Counting exposing (..)
 
 
@@ -18,11 +19,11 @@ gameView model =
     div []
         [ viewLevel model
         , Html.br [] []
-        , Html.text <| "Remaining: " ++ (toString <| Grid.count isHiddenMine model.level)
+        , Html.text <| "Remaining: " ++ (toString <| Grid.count Cell.isHiddenMine model.level)
         , Html.br [] []
         , Html.text ("Mistakes: " ++ toString model.mistakes)
         , Html.br [] []
-        , intentDisplay model.intent
+        , intentDisplay model.flippedControlls
         , Html.br [] []
         , Html.button [ Html.Events.onClick (SetRoute MainMenu) ] [ Html.text "Main Menu" ]
         ]
@@ -56,54 +57,148 @@ levelBox box =
 cellSvg : GameModel -> Grid Cell -> Coordinate -> Cell -> Grid.SvgStack Msg
 cellSvg model grid coordinate cell =
     case cell of
-        GameCell cellData ->
-            if cellData.revealed then
-                case cellData.content of
-                    Empty ->
-                        emptyCell coordinate |> Grid.singleton
+        Empty data ->
+            emptySvg coordinate data
 
-                    Count ->
-                        counterCell grid coordinate cellData |> Grid.singleton
+        Count data ->
+            countSvg grid coordinate data
 
-                    TypedCount ->
-                        typedCounterCell grid coordinate cellData |> Grid.singleton
+        Mine data ->
+            mineSvg coordinate data
 
-                    Mine ->
-                        mineCell coordinate |> Grid.singleton
+        Flower data ->
+            flowerSvg grid coordinate data
 
-                    Flower overlay ->
-                        flowerCell grid coordinate cellData overlay
+        RowCount data ->
+            rowCountSvg grid coordinate data
+
+
+emptySvg coordinate data =
+    if data.revealed then
+        withCaption coordinate "cell" "hex lightgray" "?"
+            |> Grid.singleton
+    else
+        hiddenSvg coordinate
+
+
+countSvg grid coordinate data =
+    if data.revealed then
+        let
+            count =
+                countNbhd grid coordinate
+
+            caption =
+                if data.typed then
+                    case typeNbhd grid coordinate of
+                        ConnectedNbhd ->
+                            "{" ++ toString count ++ "}"
+
+                        DisjointNbhd ->
+                            "-" ++ toString count ++ "-"
+                else
+                    toString count
+        in
+            withCaption coordinate "cell" "hex lightgray" caption
+                |> Grid.singleton
+    else
+        hiddenSvg coordinate
+
+
+mineSvg coordinate data =
+    if data.revealed then
+        Svg.g
+            [ atCoordinate coordinate
+            , Svg.Attributes.class "cell"
+            ]
+            [ hexagon "hex mine"
+            ]
+            |> Grid.singleton
+    else
+        hiddenSvg coordinate
+
+
+flowerSvg grid coordinate data =
+    if data.revealed then
+        let
+            position =
+                atCoordinate coordinate
+
+            base =
+                Svg.g
+                    [ position
+                    , Svg.Attributes.class "cell flower"
+                    , Svg.Events.onClick (ToggleOverlay coordinate (not data.overlay))
+                    ]
+                    [ hexagon "hex mine"
+                    , centeredCaption (toString (countFlower grid coordinate))
+                    , hexagon "highlight"
+                    ]
+
+            overlayPolygon =
+                Svg.g [ position ] [ flowerNbhdPolygon data.overlay ]
+        in
+            Grid.singleton base
+                |> Grid.setOverlay overlayPolygon
+    else
+        hiddenSvg coordinate
+
+
+rowCountSvg grid coordinate data =
+    let
+        position =
+            atCoordinate coordinate
+
+        count =
+            (Grid.boundingBox grid)
+                |> Maybe.map (\bounds -> countInDirection bounds grid coordinate data.direction)
+                |> Maybe.withDefault 0
+
+        nbhdType =
+            (\() ->
+                (Grid.boundingBox grid)
+                    |> Maybe.map (\bounds -> typeInDirection bounds grid coordinate data.direction)
+                    |> Maybe.withDefault ConnectedNbhd
+            )
+
+        caption =
+            if data.typed then
+                case nbhdType () of
+                    ConnectedNbhd ->
+                        "{" ++ toString count ++ "}"
+
+                    DisjointNbhd ->
+                        "-" ++ toString count ++ "-"
             else
-                hiddenCell model.intent coordinate cellData |> Grid.singleton
+                toString count
+    in
+        Svg.g
+            [ position
+            , Svg.Attributes.class "row-count"
+            , Svg.Events.onClick (ToggleOverlay coordinate (not data.overlay))
+            ]
+            [ Svg.g [ rotation data.direction ]
+                [ bottomCaption caption ]
+            ]
+            |> Grid.singleton
+            |> Grid.setOverlay (overlayLine position (rotation data.direction) data.overlay)
 
-        RowCount direction overlay ->
-            rowCountCell grid coordinate direction overlay
 
-        TypedRowCount direction overlay ->
-            typedRowCountCell grid coordinate direction overlay
-
-
-mineCell : Coordinate -> Svg Msg
-mineCell coordinate =
+hiddenSvg : Coordinate -> Grid.SvgStack Msg
+hiddenSvg coordinate =
     Svg.g
         [ atCoordinate coordinate
-        , Svg.Attributes.class "cell"
-        ]
-        [ hexagon "hex mine"
-        ]
-
-
-hiddenCell : Intent -> Coordinate -> CellData -> Svg Msg
-hiddenCell intent coordinate cell =
-    Svg.g
-        [ atCoordinate coordinate
-        , Svg.Events.onClick (Reveal intent coordinate cell)
-        , onRightClick (Reveal (flipIntent intent) coordinate cell)
+        , Svg.Events.onClick (Reveal LeftButton coordinate)
+        , onRightClick (Reveal RightButton coordinate)
         , Svg.Attributes.class "cell"
         ]
         [ hexagon "hex hidden-cell"
         , hexagon "highlight"
         ]
+        |> Grid.singleton
+
+
+
+-- Old stuff
 
 
 onRightClick message =
@@ -113,70 +208,6 @@ onRightClick message =
         , preventDefault = True
         }
         (Json.Decode.succeed message)
-
-
-flipIntent : Intent -> Intent
-flipIntent intent =
-    case intent of
-        RevealEmpty ->
-            RevealMine
-
-        RevealMine ->
-            RevealEmpty
-
-
-emptyCell : Coordinate -> Svg msg
-emptyCell coordinate =
-    withCaption coordinate "cell" "hex lightgray" "?"
-
-
-counterCell : Grid Cell -> Coordinate -> CellData -> Svg msg
-counterCell grid coordinate cell =
-    withCaption coordinate "cell" "hex lightgray" (toString (countNbhd grid coordinate))
-
-
-typedCounterCell : Grid Cell -> Coordinate -> CellData -> Svg msg
-typedCounterCell grid coordinate cell =
-    let
-        count =
-            countNbhd grid coordinate
-
-        nbhdType =
-            typeNbhd grid coordinate
-
-        caption =
-            case nbhdType of
-                ConnectedNbhd ->
-                    "{" ++ toString count ++ "}"
-
-                DisjointNbhd ->
-                    "-" ++ toString count ++ "-"
-    in
-        withCaption coordinate "cell" "hex lightgray" caption
-
-
-flowerCell : Grid Cell -> Coordinate -> CellData -> Bool -> Grid.SvgStack Msg
-flowerCell grid coordinate cell hasOverlay =
-    let
-        position =
-            atCoordinate coordinate
-
-        base =
-            Svg.g
-                [ position
-                , Svg.Attributes.class "cell flower"
-                , Svg.Events.onClick (ToggleOverlay coordinate (not hasOverlay))
-                ]
-                [ hexagon "hex mine"
-                , centeredCaption (toString (countFlower grid coordinate))
-                , hexagon "highlight"
-                ]
-
-        overlayPolygon =
-            Svg.g [ position ] [ flowerNbhdPolygon hasOverlay ]
-    in
-        Grid.singleton base
-            |> Grid.setOverlay overlayPolygon
 
 
 rowCountCell : Grid Cell -> Coordinate -> Direction -> Bool -> Grid.SvgStack Msg
@@ -203,42 +234,6 @@ rowCountCell grid coordinate direction overlay =
     in
         Grid.singleton base
             |> Grid.setOverlay (overlayLine position (rotation direction) overlay)
-
-
-typedRowCountCell : Grid Cell -> Coordinate -> Direction -> Bool -> Grid.SvgStack Msg
-typedRowCountCell grid coordinate direction overlay =
-    let
-        position =
-            atCoordinate coordinate
-
-        count =
-            (Grid.boundingBox grid)
-                |> Maybe.map (\bounds -> countInDirection bounds grid coordinate direction)
-                |> Maybe.withDefault 0
-
-        nbhdType =
-            (Grid.boundingBox grid)
-                |> Maybe.map (\bounds -> typeInDirection bounds grid coordinate direction)
-                |> Maybe.withDefault ConnectedNbhd
-
-        caption =
-            case nbhdType of
-                ConnectedNbhd ->
-                    "{" ++ toString count ++ "}"
-
-                DisjointNbhd ->
-                    "-" ++ toString count ++ "-"
-    in
-        Svg.g
-            [ position
-            , Svg.Attributes.class "row-count"
-            , Svg.Events.onClick (ToggleOverlay coordinate (not overlay))
-            ]
-            [ Svg.g [ rotation direction ]
-                [ bottomCaption caption ]
-            ]
-            |> Grid.singleton
-            |> Grid.setOverlay (overlayLine position (rotation direction)overlay)
 
 
 overlayLine position rotation overlay =
@@ -360,32 +355,28 @@ rotation direction =
 {-| This svg informs the player about the current intent (reveal, mark mine)
 and allows them to change it.
 -}
-intentDisplay : Intent -> Svg Msg
-intentDisplay intent =
-    let
-        ( className, newIntent ) =
-            case intent of
-                RevealEmpty ->
-                    ( "", RevealMine )
-
-                RevealMine ->
-                    ( "flipped", RevealEmpty )
-    in
-        svg
-            [ Html.Attributes.id "intent"
-            , Svg.Attributes.class className
-            , Svg.Events.onClick (SetIntent newIntent)
-            , viewBox "-1.4 -1.2 2.8 2.4"
-            , preserveAspectRatio "xMidYMid meet"
+intentDisplay : Bool -> Svg Msg
+intentDisplay flippedControlls =
+    svg
+        [ Html.Attributes.id "intent"
+        , Svg.Attributes.class
+            (if flippedControlls then
+                "flipped"
+             else
+                ""
+            )
+        , Svg.Events.onClick FlipControlls
+        , viewBox "-1.4 -1.2 2.8 2.4"
+        , preserveAspectRatio "xMidYMid meet"
+        ]
+        [ Svg.g
+            [ Svg.Attributes.class "right-click-intent"
+            , Svg.Attributes.transform "translate(0.2, -0.1)"
             ]
-            [ Svg.g
-                [ Svg.Attributes.class "right-click-intent"
-                , Svg.Attributes.transform "translate(0.2, -0.1)"
-                ]
-                [ hexagon "hex" ]
-            , Svg.g
-                [ Svg.Attributes.class "left-click-intent"
-                , Svg.Attributes.transform "translate(-0.2, 0.1)"
-                ]
-                [ hexagon "hex" ]
+            [ hexagon "hex" ]
+        , Svg.g
+            [ Svg.Attributes.class "left-click-intent"
+            , Svg.Attributes.transform "translate(-0.2, 0.1)"
             ]
+            [ hexagon "hex" ]
+        ]

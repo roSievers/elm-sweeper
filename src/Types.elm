@@ -3,36 +3,17 @@ module Types exposing (..)
 {- This modul collects shared types. -}
 
 import Grid exposing (Grid, Direction, Coordinate)
+import Cell exposing (Cell)
 
 
-type CellContent
-    = Empty
-    | Count
-    | TypedCount
-    | Mine
-    | Flower Bool
-
-
-type alias CellData =
-    { content : CellContent
-    , revealed : Bool
-    }
-
-
-type Cell
-    = GameCell CellData
-    | RowCount Direction Bool
-    | TypedRowCount Direction Bool
-
-
-type Intent
-    = RevealEmpty
-    | RevealMine
+type MouseButton
+    = LeftButton
+    | RightButton
 
 
 type alias GameModel =
     { level : Grid Cell
-    , intent : Intent
+    , flippedControlls : Bool
     , mistakes : Int
     }
 
@@ -42,13 +23,14 @@ type Route
     | InGame
 
 
+
 -- Messages
 
 
 type Msg
-    = Reveal Intent Coordinate CellData
+    = Reveal MouseButton Coordinate
     | ToggleOverlay Coordinate Bool
-    | SetIntent Intent
+    | FlipControlls
     | SetRoute Route
     | PasteBoxEdit String
     | NewLevel (Grid Cell)

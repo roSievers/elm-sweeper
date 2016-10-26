@@ -3,61 +3,17 @@ module Counting exposing (..)
 import Dict exposing (Dict)
 import Grid exposing (Grid, Direction(..), Coordinate)
 import Types exposing (..)
+import Cell exposing (Cell)
 
 
 -- Counting Mines
-
-
-isMineContent : CellContent -> Bool
-isMineContent content =
-    case content of
-        Empty ->
-            False
-
-        Count ->
-            False
-
-        TypedCount ->
-            False
-
-        Mine ->
-            True
-
-        Flower _ ->
-            True
-
-
-isMine : Cell -> Bool
-isMine cell =
-    case cell of
-        GameCell cellData ->
-            isMineContent cellData.content
-
-        RowCount _ _ ->
-            False
-
-        TypedRowCount _ _ ->
-            False
-
-
-isHiddenMine : Cell -> Bool
-isHiddenMine cell =
-    case cell of
-        GameCell cellData ->
-            isMineContent cellData.content && (not cellData.revealed)
-
-        RowCount _ _ ->
-            False
-
-        TypedRowCount _ _ ->
-            False
 
 
 countNbhd : Grid Cell -> Coordinate -> Int
 countNbhd grid coordinate =
     Grid.getNbhd coordinate grid
         |> List.filterMap identity
-        |> List.filter (\cell -> isMine cell)
+        |> List.filter (\cell -> Cell.isMine cell)
         |> List.length
 
 
@@ -69,7 +25,7 @@ type NbhdType
 typeNbhd : Grid Cell -> Coordinate -> NbhdType
 typeNbhd grid coordinate =
     Grid.getNbhd coordinate grid
-        |> List.map (Maybe.map isMine >> Maybe.withDefault False)
+        |> List.map (Maybe.map Cell.isMine >> Maybe.withDefault False)
         |> changes
         |> (\count ->
                 if count <= 2 then
@@ -89,7 +45,7 @@ changes list =
 countFlower : Grid Cell -> Coordinate -> Int
 countFlower grid coordinate =
     Grid.getNbhd2 coordinate grid
-        |> List.filter (\cell -> isMine cell)
+        |> List.filter (\cell -> Cell.isMine cell)
         |> List.length
 
 
@@ -103,7 +59,7 @@ countInDirection bounds grid basePoint direction =
                         Just accumulator
 
                     Just cell ->
-                        if isMine cell then
+                        if Cell.isMine cell then
                             Just (accumulator + 1)
                         else
                             Just accumulator
@@ -126,7 +82,7 @@ typeInDirection bounds grid basePoint direction =
                         Just accumulator
 
                     Just cell ->
-                        if isMine cell then
+                        if Cell.isMine cell then
                             Just (True :: accumulator)
                         else
                             Just (False :: accumulator)
