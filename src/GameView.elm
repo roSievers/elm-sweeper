@@ -75,7 +75,7 @@ cellSvg model grid coordinate cell =
 
 emptySvg coordinate data =
     if data.revealed then
-        withCaption coordinate "cell" "hex lightgray" "?"
+        withCaption coordinate "hex lightgray" data.enabled "?"
             |> Grid.singleton
     else
         hiddenSvg coordinate
@@ -98,7 +98,7 @@ countSvg grid coordinate data =
                 else
                     toString count
         in
-            withCaption coordinate "cell" "hex lightgray" caption
+            withCaption coordinate "hex lightgray" data.enabled caption
                 |> Grid.singleton
     else
         hiddenSvg coordinate
@@ -123,11 +123,19 @@ flowerSvg grid coordinate data =
             position =
                 atCoordinate coordinate
 
+            class =
+                (if data.enabled then
+                    "cell flower"
+                 else
+                    "cell flower disabled"
+                )
+
             base =
                 Svg.g
                     [ position
-                    , Svg.Attributes.class "cell flower"
+                    , Svg.Attributes.class class
                     , Svg.Events.onClick (ToggleOverlay coordinate (not data.overlay))
+                    , onRightClick (ToggleEnabled coordinate (not data.enabled))
                     ]
                     [ hexagon "hex mine"
                     , centeredCaption (toString (countFlower grid coordinate))
@@ -170,11 +178,19 @@ rowCountSvg grid coordinate data =
                         "-" ++ toString count ++ "-"
             else
                 toString count
+
+        class =
+            (if data.enabled then
+                "row-count"
+             else
+                "row-count disabled"
+            )
     in
         Svg.g
             [ position
-            , Svg.Attributes.class "row-count"
+            , Svg.Attributes.class class
             , Svg.Events.onClick (ToggleOverlay coordinate (not data.overlay))
+            , onRightClick (ToggleEnabled coordinate (not data.enabled))
             ]
             [ Svg.g [ rotation data.direction ]
                 [ bottomCaption caption ]
@@ -198,7 +214,7 @@ hiddenSvg coordinate =
 
 
 
--- Old stuff
+-- Helper functions used by the various cell view functions
 
 
 onRightClick message =
@@ -208,32 +224,6 @@ onRightClick message =
         , preventDefault = True
         }
         (Json.Decode.succeed message)
-
-
-rowCountCell : Grid Cell -> Coordinate -> Direction -> Bool -> Grid.SvgStack Msg
-rowCountCell grid coordinate direction overlay =
-    let
-        position =
-            atCoordinate coordinate
-
-        base =
-            Svg.g
-                [ position
-                , Svg.Attributes.class "row-count"
-                , Svg.Events.onClick (ToggleOverlay coordinate (not overlay))
-                ]
-                [ Svg.g [ rotation direction ]
-                    [ (Grid.boundingBox grid)
-                        |> Maybe.map (\bounds -> countInDirection bounds grid coordinate direction)
-                        |> Maybe.withDefault 0
-                        |> toString
-                        |> bottomCaption
-                    ]
-                , hexagon "highlight"
-                ]
-    in
-        Grid.singleton base
-            |> Grid.setOverlay (overlayLine position (rotation direction) overlay)
 
 
 overlayLine position rotation overlay =
@@ -256,10 +246,6 @@ overlayLine position rotation overlay =
                     []
                 ]
             ]
-
-
-
--- Helper functions used by the various cell view functions
 
 
 {-| This function creates a hexagon with a sidelength of 0.9 as a svg polygon.
@@ -290,11 +276,17 @@ flowerNbhdPolygon active =
         []
 
 
-withCaption : Coordinate -> String -> String -> String -> Svg msg
-withCaption coordinate cellClass hexClass caption =
+withCaption : Coordinate -> String -> Bool -> String -> Svg Msg
+withCaption coordinate hexClass enabled caption =
     Svg.g
         [ atCoordinate coordinate
-        , Svg.Attributes.class cellClass
+        , Svg.Attributes.class
+            (if enabled then
+                "cell"
+             else
+                "cell disabled"
+            )
+        , onRightClick (ToggleEnabled coordinate (not enabled))
         ]
         [ hexagon hexClass
         , centeredCaption caption

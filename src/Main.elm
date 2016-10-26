@@ -87,6 +87,19 @@ update action model =
                     (Cell.setOverlay overlay)
                 |> Return.singleton
 
+        ToggleEnabled coordinate enabled ->
+            model
+                |> Optional.modify
+                    (Optional.fromLens (Lens.compose gameModel gameGrid)
+                        => (Grid.at coordinate)
+                    )
+                    (if enabled then
+                        Cell.setEnabled enabled
+                     else
+                        Cell.setEnabled enabled >> Cell.setOverlay False
+                    )
+                |> Return.singleton
+
         FlipControlls ->
             Return.singleton { model | flippedControlls = not model.flippedControlls }
 

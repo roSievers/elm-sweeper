@@ -19,6 +19,14 @@ polygon.highlight {
     opacity: 0;
 }
 
+.disabled text {
+    opacity: 0.2;
+}
+
+text {
+    transition: opacity 200ms ease-in-out;
+}
+
 .mine {
     fill: blue;
 }

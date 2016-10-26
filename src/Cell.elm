@@ -4,7 +4,7 @@ import Grid
 
 
 type Cell
-    = Empty { revealed : Bool }
+    = Empty { revealed : Bool, enabled : Bool }
     | Count { typed : Bool, revealed : Bool, enabled : Bool }
     | Mine { revealed : Bool }
     | Flower { revealed : Bool, overlay : Bool, enabled : Bool }
@@ -13,7 +13,7 @@ type Cell
 
 empty : Cell
 empty =
-    Empty { revealed = False }
+    Empty { revealed = False, enabled = True }
 
 
 count : Cell
@@ -109,8 +109,10 @@ setRevealed revealed cell =
         otherCell ->
             otherCell
 
+
 reveal : Cell -> Cell
-reveal = setRevealed True
+reveal =
+    setRevealed True
 
 
 setOverlay : Bool -> Cell -> Cell
@@ -129,6 +131,9 @@ setOverlay overlay cell =
 setEnabled : Bool -> Cell -> Cell
 setEnabled enabled cell =
     case cell of
+        Empty data ->
+            Empty { data | enabled = enabled }
+
         Count data ->
             Count { data | enabled = enabled }
 

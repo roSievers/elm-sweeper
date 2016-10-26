@@ -29,6 +29,7 @@ type Route
 type Msg
     = Reveal MouseButton Coordinate
     | ToggleOverlay Coordinate Bool
+    | ToggleEnabled Coordinate Bool
     | FlipControlls
     | SetRoute Route
     | PasteBoxEdit String
