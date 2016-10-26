@@ -12,6 +12,7 @@ import Grid exposing (Grid, Direction(..), Coordinate)
 import Types exposing (..)
 import Counting exposing (..)
 
+
 gameView : GameModel -> Html Msg
 gameView model =
     div []
@@ -45,11 +46,11 @@ levelBox : Grid.BoundingBox -> String
 levelBox box =
     toString (1.5 * toFloat box.left - 2)
         ++ " "
-        ++ toString (2 * toFloat box.top - 2)
+        ++ toString (toFloat box.top - 2)
         ++ " "
         ++ toString (1.5 * toFloat (box.right - box.left) + 4)
         ++ " "
-        ++ toString (2 * toFloat (box.bottom - box.top) + 4)
+        ++ toString (toFloat (box.bottom - box.top) + 4)
 
 
 cellSvg : GameModel -> Grid Cell -> Coordinate -> Cell -> Grid.SvgStack Msg
@@ -291,6 +292,10 @@ bottomCaption caption =
         [ Svg.text caption ]
 
 
+
+-- Transformations
+
+
 atCoordinate : Coordinate -> Svg.Attribute msg
 atCoordinate coordinate =
     transform
@@ -298,14 +303,7 @@ atCoordinate coordinate =
             ++ toString (1.5 * toFloat coordinate.x)
             ++ ","
             ++ toString
-                (1.732
-                    * toFloat coordinate.y
-                    + (if coordinate.x % 2 == 1 then
-                        0.866
-                       else
-                        0
-                      )
-                )
+                (0.866 * toFloat coordinate.y )
             ++ ")"
         )
 

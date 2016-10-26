@@ -173,16 +173,21 @@ moveDirection direction coordinate =
             { coordinate | y = coordinate.y + 1 }
 
         DownRight ->
-            if coordinate.x % 2 == 0 then
-                { coordinate | x = coordinate.x + 1 }
-            else
-                { x = coordinate.x + 1, y = coordinate.y + 1 }
+            { x = coordinate.x + 1, y = coordinate.y + 1 }
 
+        -- if coordinate.x % 2 == 0 then
+        --     { coordinate | x = coordinate.x + 1 }
+        -- else
+        --     { x = coordinate.x + 1, y = coordinate.y + 1 }
         DownLeft ->
-            if coordinate.x % 2 == 0 then
-                { coordinate | x = coordinate.x - 1 }
-            else
-                { x = coordinate.x - 1, y = coordinate.y + 1 }
+            { x = coordinate.x - 1, y = coordinate.y + 1 }
+
+
+
+-- if coordinate.x % 2 == 0 then
+--     { coordinate | x = coordinate.x - 1 }
+-- else
+--     { x = coordinate.x - 1, y = coordinate.y + 1 }
 
 
 {-| This fold function starts at a given coordinate and keeps moving
@@ -222,22 +227,13 @@ getNbhd : Coordinate -> Grid a -> List (Maybe a)
 getNbhd center grid =
     let
         nbhd =
-            if center.x % 2 == 0 then
-                [ { x = -1, y = -1 }
-                , { x = 0, y = -1 }
-                , { x = 1, y = -1 }
-                , { x = 1, y = 0 }
-                , { x = 0, y = 1 }
-                , { x = -1, y = 0 }
-                ]
-            else
-                [ { x = -1, y = 1 }
-                , { x = 0, y = 1 }
-                , { x = 1, y = 1 }
-                , { x = 1, y = 0 }
-                , { x = 0, y = -1 }
-                , { x = -1, y = 0 }
-                ]
+            [ { x = -1, y = -1 }
+            , { x = 0, y = -2 }
+            , { x = 1, y = -1 }
+            , { x = 1, y = 1 }
+            , { x = 0, y = 2 }
+            , { x = -1, y = 1 }
+            ]
     in
         nbhd
             |> List.map (\delta -> getRelative center delta grid)
@@ -246,34 +242,26 @@ getNbhd center grid =
 getNbhd2 : Coordinate -> Grid a -> List a
 getNbhd2 center grid =
     let
-        base =
-            [ { x = 0, y = -2 }
-            , { x = -2, y = -1 }
-            , { x = -1, y = -1 }
-            , { x = 0, y = -1 }
-            , { x = 1, y = -1 }
-            , { x = 2, y = -1 }
-            , { x = -2, y = 0 }
-            , { x = -1, y = 0 }
-            , { x = 1, y = 0 }
-            , { x = 2, y = 0 }
-            , { x = -2, y = 1 }
-            , { x = -1, y = 1 }
-            , { x = 0, y = 1 }
-            , { x = 1, y = 1 }
-            , { x = 2, y = 1 }
-            , { x = 0, y = 2 }
-            ]
-
         nbhd =
-            if center.x % 2 == 0 then
-                { x = -1, y = -2 }
-                    :: { x = 1, y = -2 }
-                    :: base
-            else
-                { x = -1, y = 2 }
-                    :: { x = 1, y = 2 }
-                    :: base
+            [ { x = -1, y = -1 }
+            , { x = 0, y = -2 }
+            , { x = 1, y = -1 }
+            , { x = 1, y = 1 }
+            , { x = 0, y = 2 }
+            , { x = -1, y = 1 }
+            , { x = 0, y = 4}
+            , { x = 1, y = 3}
+            , { x = 2, y = 2}
+            , { x = 2, y = 0}
+            , { x = 2, y = -2}
+            , { x = 1, y = -3}
+            , { x = 0, y = -4}
+            , { x = -1, y = -3}
+            , { x = -2, y = -2}
+            , { x = -2, y = -0}
+            , { x = -2, y = 2}
+            , { x = -1, y = 3}
+            ]
     in
         nbhd
             |> List.map (\delta -> getRelative center delta grid)

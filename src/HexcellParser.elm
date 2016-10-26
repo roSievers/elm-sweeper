@@ -159,7 +159,7 @@ createIndices rawGrid =
                             grid
 
                         Just cell ->
-                            Dict.insert ( colIndex, (rowIndex+1) // 2 ) cell grid
+                            Dict.insert ( colIndex, rowIndex ) cell grid
                 )
                 grid
                 row
