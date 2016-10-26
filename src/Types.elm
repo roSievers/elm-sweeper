@@ -37,6 +37,11 @@ type alias GameModel =
     }
 
 
+type Route
+    = MainMenu
+    | InGame
+
+
 -- Messages
 
 
@@ -44,3 +49,6 @@ type Msg
     = Reveal Intent Coordinate CellData
     | ToggleFlower Coordinate CellData Bool
     | SetIntent Intent
+    | SetRoute Route
+    | PasteBoxEdit String
+    | NewLevel (Grid Cell)

@@ -22,6 +22,8 @@ gameView model =
         , Html.text ("Mistakes: " ++ toString model.mistakes)
         , Html.br [] []
         , intentDisplay model.intent
+        , Html.br [] []
+        , Html.button [ Html.Events.onClick (SetRoute MainMenu) ] [ Html.text "Main Menu" ]
         ]
 
 
