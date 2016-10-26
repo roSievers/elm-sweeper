@@ -52,6 +52,18 @@ polygon.highlight {
     transform: scale(1);
 }
 
+.row-counter-overlay {
+    stroke: white;
+    stroke-width: 0.1;
+    opacity: 0;
+    transition: opacity 200ms ease-in-out;
+    pointer-events: none;
+}
+
+.row-counter-active {
+    opacity: 0.5;
+}
+
 #intent {
     width: 10%;
     height: 200px;

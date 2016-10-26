@@ -11,7 +11,9 @@ import Types exposing (..)
 import ExampleLevel
 import GameView
 import Counting exposing (isMineContent)
-import Monocle.Lens exposing (Lens, modify)
+import Monocle.Lens as Lens exposing (Lens, modify)
+import Monocle.Optional as Optional
+import Monocle.Common exposing ((=>))
 import HexcellParser
 
 
@@ -38,6 +40,11 @@ type alias Model =
 gameModel : Lens Model GameModel
 gameModel =
     Lens (.currentGame) (\gModel model -> { model | currentGame = gModel })
+
+
+gameGrid : Lens GameModel (Grid Cell)
+gameGrid =
+    Lens (.level) (\newGrid model -> { model | level = newGrid })
 
 
 init : Return msg Model
@@ -69,9 +76,13 @@ update action model =
                 |> modify gameModel (handleReveal intent coordinate cell)
                 |> Return.singleton
 
-        ToggleFlower coordinate cell overlay ->
+        ToggleOverlay coordinate overlay ->
             model
-                |> modify gameModel (toggleFlower coordinate cell overlay)
+                |> Optional.modify
+                    (Optional.fromLens (Lens.compose gameModel gameGrid)
+                        => (Grid.at coordinate)
+                    )
+                    (toggleOverlay overlay)
                 |> Return.singleton
 
         SetIntent intent ->
@@ -116,15 +127,22 @@ handleReveal intent coordinate cell model =
                 }
 
 
-toggleFlower : Coordinate -> CellData -> Bool -> GameModel -> GameModel
-toggleFlower coordinate cell overlay model =
-    { model
-        | level =
-            Grid.insert
-                coordinate
-                (GameCell { content = Flower overlay, revealed = True })
-                model.level
-    }
+toggleOverlay : Bool -> Cell -> Cell
+toggleOverlay overlay cell =
+    case cell of
+        GameCell cellData ->
+            case cellData.content of
+                Flower _ ->
+                    GameCell { cellData | content = Flower overlay }
+
+                _ ->
+                    GameCell cellData
+
+        RowCount direction _ ->
+            RowCount direction overlay
+
+        TypedRowCount direction _ ->
+            TypedRowCount direction overlay
 
 
 setGrid : Grid Cell -> GameModel -> GameModel
@@ -172,7 +190,9 @@ mainMenuView model =
         ]
 
 
-first (a, _) = a
+first ( a, _ ) =
+    a
+
 
 parsedResultView : Result (List String) HexcellParser.Intermediate -> Html Msg
 parsedResultView parseResult =

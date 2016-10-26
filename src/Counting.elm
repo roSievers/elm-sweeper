@@ -33,10 +33,10 @@ isMine cell =
         GameCell cellData ->
             isMineContent cellData.content
 
-        RowCount _ ->
+        RowCount _ _ ->
             False
 
-        TypedRowCount _ ->
+        TypedRowCount _ _ ->
             False
 
 
@@ -46,10 +46,10 @@ isHiddenMine cell =
         GameCell cellData ->
             isMineContent cellData.content && (not cellData.revealed)
 
-        RowCount _ ->
+        RowCount _ _ ->
             False
 
-        TypedRowCount _ ->
+        TypedRowCount _ _ ->
             False
 
 

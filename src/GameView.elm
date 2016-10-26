@@ -44,13 +44,13 @@ viewLevel model =
 
 levelBox : Grid.BoundingBox -> String
 levelBox box =
-    toString (1.5 * toFloat box.left - 2)
+    toString (1.5 * toFloat box.left - 1)
         ++ " "
-        ++ toString (toFloat box.top - 2)
+        ++ toString (0.866 * toFloat box.top - 2)
         ++ " "
-        ++ toString (1.5 * toFloat (box.right - box.left) + 4)
+        ++ toString (1.5 * toFloat (box.right - box.left) + 2)
         ++ " "
-        ++ toString (toFloat (box.bottom - box.top) + 4)
+        ++ toString (0.866 * toFloat (box.bottom - box.top) + 4)
 
 
 cellSvg : GameModel -> Grid Cell -> Coordinate -> Cell -> Grid.SvgStack Msg
@@ -76,11 +76,11 @@ cellSvg model grid coordinate cell =
             else
                 hiddenCell model.intent coordinate cellData |> Grid.singleton
 
-        RowCount direction ->
-            rowCountCell grid coordinate direction
+        RowCount direction overlay ->
+            rowCountCell grid coordinate direction overlay
 
-        TypedRowCount direction ->
-            typedRowCountCell grid coordinate direction
+        TypedRowCount direction overlay ->
+            typedRowCountCell grid coordinate direction overlay
 
 
 mineCell : Coordinate -> Svg Msg
@@ -165,7 +165,7 @@ flowerCell grid coordinate cell hasOverlay =
             Svg.g
                 [ position
                 , Svg.Attributes.class "cell flower"
-                , Svg.Events.onClick (ToggleFlower coordinate cell (not hasOverlay))
+                , Svg.Events.onClick (ToggleOverlay coordinate (not hasOverlay))
                 ]
                 [ hexagon "hex mine"
                 , centeredCaption (toString (countFlower grid coordinate))
@@ -179,30 +179,38 @@ flowerCell grid coordinate cell hasOverlay =
             |> Grid.setOverlay overlayPolygon
 
 
-rowCountCell : Grid Cell -> Coordinate -> Direction -> Grid.SvgStack Msg
-rowCountCell grid coordinate direction =
-    Svg.g
-        [ atCoordinate coordinate
-        , Svg.Attributes.class "row-count"
-        ]
-        [ Svg.g [ rotation direction ]
-            [ (Grid.boundingBox grid)
-                |> Maybe.map (\bounds -> countInDirection bounds grid coordinate direction)
-                |> Maybe.withDefault 0
-                |> toString
-                |> bottomCaption
-            ]
-        ]
-        |> Grid.singleton
-
-
-
--- TODO
-
-
-typedRowCountCell : Grid Cell -> Coordinate -> Direction -> Grid.SvgStack Msg
-typedRowCountCell grid coordinate direction =
+rowCountCell : Grid Cell -> Coordinate -> Direction -> Bool -> Grid.SvgStack Msg
+rowCountCell grid coordinate direction overlay =
     let
+        position =
+            atCoordinate coordinate
+
+        base =
+            Svg.g
+                [ position
+                , Svg.Attributes.class "row-count"
+                , Svg.Events.onClick (ToggleOverlay coordinate (not overlay))
+                ]
+                [ Svg.g [ rotation direction ]
+                    [ (Grid.boundingBox grid)
+                        |> Maybe.map (\bounds -> countInDirection bounds grid coordinate direction)
+                        |> Maybe.withDefault 0
+                        |> toString
+                        |> bottomCaption
+                    ]
+                , hexagon "highlight"
+                ]
+    in
+        Grid.singleton base
+            |> Grid.setOverlay (overlayLine position (rotation direction) overlay)
+
+
+typedRowCountCell : Grid Cell -> Coordinate -> Direction -> Bool -> Grid.SvgStack Msg
+typedRowCountCell grid coordinate direction overlay =
+    let
+        position =
+            atCoordinate coordinate
+
         count =
             (Grid.boundingBox grid)
                 |> Maybe.map (\bounds -> countInDirection bounds grid coordinate direction)
@@ -222,13 +230,37 @@ typedRowCountCell grid coordinate direction =
                     "-" ++ toString count ++ "-"
     in
         Svg.g
-            [ atCoordinate coordinate
+            [ position
             , Svg.Attributes.class "row-count"
+            , Svg.Events.onClick (ToggleOverlay coordinate (not overlay))
             ]
             [ Svg.g [ rotation direction ]
                 [ bottomCaption caption ]
             ]
             |> Grid.singleton
+            |> Grid.setOverlay (overlayLine position (rotation direction)overlay)
+
+
+overlayLine position rotation overlay =
+    let
+        overlayClassName =
+            if overlay then
+                "row-counter-overlay row-counter-active"
+            else
+                "row-counter-overlay"
+    in
+        Svg.g [ position ]
+            [ Svg.g [ rotation ]
+                [ Svg.line
+                    [ Svg.Attributes.x1 "0"
+                    , Svg.Attributes.y1 "0.866"
+                    , Svg.Attributes.x2 "0"
+                    , Svg.Attributes.y2 "20"
+                    , Svg.Attributes.class overlayClassName
+                    ]
+                    []
+                ]
+            ]
 
 
 
@@ -303,7 +335,7 @@ atCoordinate coordinate =
             ++ toString (1.5 * toFloat coordinate.x)
             ++ ","
             ++ toString
-                (0.866 * toFloat coordinate.y )
+                (0.866 * toFloat coordinate.y)
             ++ ")"
         )
 

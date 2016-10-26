@@ -26,7 +26,7 @@ grid1 =
         , ( ( 4, 7 ), GameCell { content = Count, revealed = False } )
         , ( ( 5, 8 ), GameCell { content = Empty, revealed = False } )
         , ( ( 4, 9 ), GameCell { content = Mine, revealed = False } )
-        , ( ( 4, 1 ), TypedRowCount Down )
-        , ( ( 2, 1 ), TypedRowCount DownRight )
-        , ( ( 1, 2 ), RowCount Down )
+        , ( ( 4, 1 ), TypedRowCount Down False )
+        , ( ( 2, 1 ), TypedRowCount DownRight False )
+        , ( ( 1, 2 ), RowCount Down False )
         ]

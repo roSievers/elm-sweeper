@@ -102,16 +102,16 @@ flowerCell =
 
 rowCount : Parser Cell
 rowCount =
-    (RowCount DownLeft <$ string "/+")
-        <|> (RowCount Down <$ string "|+")
-        <|> (RowCount DownRight <$ string "\\+")
+    (RowCount DownLeft False <$ string "/+")
+        <|> (RowCount Down False <$ string "|+")
+        <|> (RowCount DownRight False <$ string "\\+")
 
 
 typedRowCount : Parser Cell
 typedRowCount =
-    (TypedRowCount DownLeft <$ (string "/c" <|> string "/n"))
-        <|> (TypedRowCount Down <$ (string "|c" <|> string "|n"))
-        <|> (TypedRowCount DownRight <$ (string "\\c" <|> string "\\n"))
+    (TypedRowCount DownLeft False <$ (string "/c" <|> string "/n"))
+        <|> (TypedRowCount Down False <$ (string "|c" <|> string "|n"))
+        <|> (TypedRowCount DownRight False <$ (string "\\c" <|> string "\\n"))
 
 
 nothing : Parser (Maybe a)

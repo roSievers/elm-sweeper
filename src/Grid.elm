@@ -4,6 +4,8 @@ import Dict exposing (Dict)
 import List
 import Svg exposing (Svg)
 import Svg.Keyed
+import Monocle.Optional exposing (Optional)
+import Monocle.Common
 
 
 {-| Implements a hexagonal grid type.
@@ -53,6 +55,11 @@ get coordinate grid =
 insert : Coordinate -> a -> Grid a -> Grid a
 insert coordinate value grid =
     Dict.insert ( coordinate.x, coordinate.y ) value grid
+
+{-| A Monocle.Optional for accessing grid cells. -}
+at : Coordinate -> Optional (Grid a) a
+at coordinate =
+    Monocle.Common.dict ( coordinate.x, coordinate.y )
 
 
 count : (a -> Bool) -> Grid a -> Int
@@ -249,18 +256,18 @@ getNbhd2 center grid =
             , { x = 1, y = 1 }
             , { x = 0, y = 2 }
             , { x = -1, y = 1 }
-            , { x = 0, y = 4}
-            , { x = 1, y = 3}
-            , { x = 2, y = 2}
-            , { x = 2, y = 0}
-            , { x = 2, y = -2}
-            , { x = 1, y = -3}
-            , { x = 0, y = -4}
-            , { x = -1, y = -3}
-            , { x = -2, y = -2}
-            , { x = -2, y = -0}
-            , { x = -2, y = 2}
-            , { x = -1, y = 3}
+            , { x = 0, y = 4 }
+            , { x = 1, y = 3 }
+            , { x = 2, y = 2 }
+            , { x = 2, y = 0 }
+            , { x = 2, y = -2 }
+            , { x = 1, y = -3 }
+            , { x = 0, y = -4 }
+            , { x = -1, y = -3 }
+            , { x = -2, y = -2 }
+            , { x = -2, y = 0 }
+            , { x = -2, y = 2 }
+            , { x = -1, y = 3 }
             ]
     in
         nbhd

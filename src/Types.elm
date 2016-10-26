@@ -21,8 +21,8 @@ type alias CellData =
 
 type Cell
     = GameCell CellData
-    | RowCount Direction
-    | TypedRowCount Direction
+    | RowCount Direction Bool
+    | TypedRowCount Direction Bool
 
 
 type Intent
@@ -47,7 +47,7 @@ type Route
 
 type Msg
     = Reveal Intent Coordinate CellData
-    | ToggleFlower Coordinate CellData Bool
+    | ToggleOverlay Coordinate Bool
     | SetIntent Intent
     | SetRoute Route
     | PasteBoxEdit String
