@@ -206,5 +206,7 @@ parsedResultView parseResult =
                 [ text "Parsing successful!"
                 , text <| "Author: " ++ intermediate.author
                 , text <| "Title: " ++ intermediate.title
+                , GameView.viewLevel "levelPreview" intermediate.content
+                , br [] []
                 , button [ onClick (NewLevel intermediate.content) ] [ text "Load Level" ]
                 ]

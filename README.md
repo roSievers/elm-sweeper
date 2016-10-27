@@ -15,10 +15,11 @@ Community made levels are collected on
   - Nicer Graphics
   - The original level collection by Matthew Brown
   - Steam integration
+  - Achivements
 
 ### Elm Sweeper has
 
-  - Nothing fancy yet ;-(
+  - Ability to fade out all numbers, not only flowers and rows. (Which is really the reason this whole project got started.)
 
 ### Elm Sweeper might someday have
 
@@ -30,4 +31,4 @@ Just a dump of ideas for this floating around my head.
   - Maybe even .../#reddit=4y2l34/level_broken_spaceship_mediumhard
   this would link back to the reddit discussion thread from inside Elm Sweeper.
 - An integrated level editor. There is already [SixCells](https://github.com/blaxpirit/sixcells) but you have to download it.
-- Fade out now useless numbers. Hexcells does this for flowers, but I want it for regular numbers as well (Which is really the reason this whole project got started.)
+- More random map generators.

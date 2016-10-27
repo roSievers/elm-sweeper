@@ -1,4 +1,4 @@
-module GameView exposing (gameView)
+module GameView exposing (gameView, viewLevel)
 
 import Html exposing (Html, div, text)
 import Html.App
@@ -17,7 +17,7 @@ import Counting exposing (..)
 gameView : Bool -> GameModel -> Html Msg
 gameView flippedControlls model =
     div []
-        [ viewLevel model
+        [ viewLevel "levelView" model.level
         , Html.br [] []
         , Html.text <| "Remaining: " ++ (toString <| Grid.count Cell.isHiddenMine model.level)
         , Html.br [] []
@@ -29,17 +29,17 @@ gameView flippedControlls model =
         ]
 
 
-viewLevel : GameModel -> Html.Html Msg
-viewLevel model =
+viewLevel : String -> Grid Cell -> Html.Html Msg
+viewLevel idAttribute grid =
     let
         visibleArea =
-            Grid.boundingBox model.level
+            Grid.boundingBox grid
                 |> Maybe.map (levelBox >> viewBox)
                 |> Maybe.withDefault (viewBox "0 0 20 16")
     in
         svg
-            [ Html.Attributes.id "levelView", width "1000", height "800", visibleArea, preserveAspectRatio "xMidYMid meet" ]
-            [ Grid.view (cellSvg model) model.level
+            [ Html.Attributes.id idAttribute, width "100", height "80", visibleArea, preserveAspectRatio "xMidYMid meet" ]
+            [ Grid.view cellSvg grid
             ]
 
 
@@ -54,8 +54,8 @@ levelBox box =
         ++ toString (0.866 * toFloat (box.bottom - box.top) + 4)
 
 
-cellSvg : GameModel -> Grid Cell -> Coordinate -> Cell -> Grid.SvgStack Msg
-cellSvg model grid coordinate cell =
+cellSvg : Grid Cell -> Coordinate -> Cell -> Grid.SvgStack Msg
+cellSvg grid coordinate cell =
     case cell of
         Empty data ->
             emptySvg coordinate data
@@ -240,7 +240,7 @@ overlayLine position rotation overlay =
                     [ Svg.Attributes.x1 "0"
                     , Svg.Attributes.y1 "0.866"
                     , Svg.Attributes.x2 "0"
-                    , Svg.Attributes.y2 "20"
+                    , Svg.Attributes.y2 "40"
                     , Svg.Attributes.class overlayClassName
                     ]
                     []
