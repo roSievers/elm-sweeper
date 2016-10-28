@@ -8,6 +8,17 @@ Minesweeper with hand crafted levels.
 Community made levels are collected on
 [/r/hexcellslevels](https://www.reddit.com/r/hexcellslevels/).
 
+## Screenshots
+
+Early development version, loading and playing levels works, but there is no propper menu flow yet. (28.10.16)
+
+![Screenshot on Imgur](http://i.imgur.com/ARPdQRX.png)
+
+## Compiling
+
+Install [Elm](http://elm-lang.org/), run [elm-reactor](https://github.com/elm-lang/elm-reactor/)
+from the project root, then open [index.html](http://localhost:8000/index.html) in elm-reactor.
+
 ## Comparison to Hexcells
 
 ### Hexcells has
@@ -25,6 +36,7 @@ Community made levels are collected on
 
 Just a dump of ideas for this floating around my head.
 
+- A collection of user levels
 - Create a link which opens a certain level automatically.
   - .../#decode=FancyUrlEncoding
   - .../#source=https://github.com/rosievers/hexcelllevels/raw/master/l1
