@@ -7,6 +7,8 @@ import Html.Attributes
 import Svg exposing (Svg, svg, rect)
 import Svg.Attributes exposing (..)
 import Svg.Events
+import String
+import Basics.Extra exposing (never)
 import Json.Decode
 import Grid exposing (Grid, Direction(..), Coordinate)
 import Types exposing (..)
@@ -18,6 +20,7 @@ gameView : Bool -> GameModel -> Html Msg
 gameView flippedControlls model =
     div []
         [ viewLevel "levelView" model.level
+        , Html.div [ Html.Attributes.id "levelMeta" ] [ Html.text "Information about the Level." ]
         , Html.br [] []
         , Html.text <| "Remaining: " ++ (toString <| Grid.count Cell.isHiddenMine model.level)
         , Html.br [] []
@@ -39,7 +42,7 @@ viewLevel idAttribute grid =
     in
         svg
             [ Html.Attributes.id idAttribute, width "100", height "80", visibleArea, preserveAspectRatio "xMidYMid meet" ]
-            [ Grid.view cellSvg grid
+            [ Grid.view cellSvgInteractive grid
             ]
 
 
@@ -54,7 +57,11 @@ levelBox box =
         ++ toString (0.866 * toFloat (box.bottom - box.top) + 4)
 
 
-cellSvg : Grid Cell -> Coordinate -> Cell -> Grid.SvgStack Msg
+
+-- Rendering a single cell to Svg
+
+
+cellSvg : Grid Cell -> Coordinate -> Cell -> CellDisplay
 cellSvg grid coordinate cell =
     case cell of
         Empty data ->
@@ -73,10 +80,83 @@ cellSvg grid coordinate cell =
             rowCountSvg grid coordinate data
 
 
+cellSvgInteractive : Grid Cell -> Coordinate -> Cell -> Grid.SvgStack Msg
+cellSvgInteractive grid coordinate cell =
+    cellSvg grid coordinate cell
+        |> genericCellInteractive
+
+
+cellSvgPreview : Grid Cell -> Coordinate -> Cell -> Grid.SvgStack msg
+cellSvgPreview grid coordinate cell =
+    cellSvg grid coordinate cell
+        |> genericCellPreview
+
+
+{-| The CellDisplay type captures all revevant information for rendering a
+cell without actually creating any Svg nodes yet. This allows some late
+modifications (like removing event handlers and overlays).
+
+There are a few `Html.App.map never` sprinkled in the code they can be
+replaced by Svg.map once Elm 0.18 is out.
+-}
+type alias CellDisplay =
+    { class : String
+    , coordinate : Coordinate
+    , leftClick : Maybe Msg
+    , rightClick : Maybe Msg
+    , content : List (Svg Never)
+    , overlay : Maybe (List (Svg Never))
+    }
+
+
+genericCellInteractive : CellDisplay -> Grid.SvgStack Msg
+genericCellInteractive displayData =
+    let
+        position =
+            atCoordinate displayData.coordinate
+
+        attributes =
+            [ Just (Svg.Attributes.class displayData.class)
+            , Just position
+            , Maybe.map Svg.Events.onClick displayData.leftClick
+            , Maybe.map onRightClick displayData.rightClick
+            ]
+                |> List.filterMap identity
+
+        content =
+            displayData.content
+                |> List.map (Html.App.map never)
+    in
+        case displayData.overlay of
+            Nothing ->
+                Svg.g attributes content
+                    |> Grid.singleton
+
+            Just overlayContent ->
+                Svg.g attributes content
+                    |> Grid.singleton
+                    |> Grid.setOverlay (Svg.g [ position ] (List.map (Html.App.map never) overlayContent))
+
+
+genericCellPreview : CellDisplay -> Grid.SvgStack msg
+genericCellPreview displayData =
+    let
+        position =
+            atCoordinate displayData.coordinate
+
+        attributes =
+            [ Svg.Attributes.class (displayData.class ++ " preview")
+            , position
+            ]
+    in
+        Svg.g attributes displayData.content
+            |> Html.App.map never
+            |> Grid.singleton
+
+
 emptySvg coordinate data =
     if data.revealed then
         withCaption coordinate "hex lightgray" data.enabled "?"
-            |> Grid.singleton
     else
         hiddenSvg coordinate
 
@@ -99,54 +179,38 @@ countSvg grid coordinate data =
                     toString count
         in
             withCaption coordinate "hex lightgray" data.enabled caption
-                |> Grid.singleton
     else
         hiddenSvg coordinate
 
 
 mineSvg coordinate data =
     if data.revealed then
-        Svg.g
-            [ atCoordinate coordinate
-            , Svg.Attributes.class "cell"
-            ]
+        { class = "cell"
+        , coordinate = coordinate
+        , leftClick = Nothing
+        , rightClick = Nothing
+        , content =
             [ hexagon "hex mine"
             ]
-            |> Grid.singleton
+        , overlay = Nothing
+        }
     else
         hiddenSvg coordinate
 
 
 flowerSvg grid coordinate data =
     if data.revealed then
-        let
-            position =
-                atCoordinate coordinate
-
-            class =
-                (if data.enabled then
-                    "cell flower"
-                 else
-                    "cell flower disabled"
-                )
-
-            base =
-                Svg.g
-                    [ position
-                    , Svg.Attributes.class class
-                    , Svg.Events.onClick (ToggleOverlay coordinate (not data.overlay))
-                    , onRightClick (ToggleEnabled coordinate (not data.enabled))
-                    ]
-                    [ hexagon "hex mine"
-                    , centeredCaption (toString (countFlower grid coordinate))
-                    , hexagon "highlight"
-                    ]
-
-            overlayPolygon =
-                Svg.g [ position ] [ flowerNbhdPolygon data.overlay ]
-        in
-            Grid.singleton base
-                |> Grid.setOverlay overlayPolygon
+        { class = classList [ ( "cell flower", True ), ( "disabled", not data.enabled ) ]
+        , coordinate = coordinate
+        , leftClick = Just (ToggleOverlay coordinate (not data.overlay))
+        , rightClick = Just (ToggleEnabled coordinate (not data.enabled))
+        , content =
+            [ hexagon "hex mine"
+            , centeredCaption (toString (countFlower grid coordinate))
+            , hexagon "highlight"
+            ]
+        , overlay = Just [ flowerNbhdPolygon data.overlay ]
+        }
     else
         hiddenSvg coordinate
 
@@ -178,43 +242,55 @@ rowCountSvg grid coordinate data =
                         "-" ++ toString count ++ "-"
             else
                 toString count
-
-        class =
-            (if data.enabled then
-                "row-count"
-             else
-                "row-count disabled"
-            )
     in
-        Svg.g
-            [ position
-            , Svg.Attributes.class class
-            , Svg.Events.onClick (ToggleOverlay coordinate (not data.overlay))
-            , onRightClick (ToggleEnabled coordinate (not data.enabled))
-            ]
+        { class = classList [ ( "row-count", True ), ( "disabled", not data.enabled ) ]
+        , coordinate = coordinate
+        , leftClick = Just (ToggleOverlay coordinate (not data.overlay))
+        , rightClick = Just (ToggleEnabled coordinate (not data.enabled))
+        , content =
             [ Svg.g [ rotation data.direction ]
                 [ bottomCaption caption ]
             ]
-            |> Grid.singleton
-            |> Grid.setOverlay (overlayLine position (rotation data.direction) data.overlay)
+        , overlay = Just [ (overlayLine (rotation data.direction) data.overlay) ]
+        }
 
 
-hiddenSvg : Coordinate -> Grid.SvgStack Msg
+hiddenSvg : Coordinate -> CellDisplay
 hiddenSvg coordinate =
-    Svg.g
-        [ atCoordinate coordinate
-        , Svg.Events.onClick (Reveal LeftButton coordinate)
-        , onRightClick (Reveal RightButton coordinate)
-        , Svg.Attributes.class "cell"
-        ]
-        [ hexagon "hex hidden-cell"
-        , hexagon "highlight"
-        ]
-        |> Grid.singleton
+    { class = "cell"
+    , coordinate = coordinate
+    , leftClick = Just (Reveal LeftButton coordinate)
+    , rightClick = Just (Reveal RightButton coordinate)
+    , content = [ hexagon "hex hidden-cell", hexagon "highlight" ]
+    , overlay = Nothing
+    }
 
 
 
+{-
+   { class =
+   , coordinate = coordinate
+   , leftClick =
+   , rightClick =
+   , content =
+   , overlay =
+   }
+-}
 -- Helper functions used by the various cell view functions
+
+
+{-| Svg version of Html.Attributes.classList.
+-}
+classList : List ( String, Bool ) -> String
+classList classes =
+    classes
+        |> List.filter (\( _, active ) -> active)
+        |> List.map (\( className, _ ) -> className)
+        |> String.join " "
+
+
+classListOld =
+    classList >> Svg.Attributes.class
 
 
 onRightClick message =
@@ -226,26 +302,17 @@ onRightClick message =
         (Json.Decode.succeed message)
 
 
-overlayLine position rotation overlay =
-    let
-        overlayClassName =
-            if overlay then
-                "row-counter-overlay row-counter-active"
-            else
-                "row-counter-overlay"
-    in
-        Svg.g [ position ]
-            [ Svg.g [ rotation ]
-                [ Svg.line
-                    [ Svg.Attributes.x1 "0"
-                    , Svg.Attributes.y1 "0.866"
-                    , Svg.Attributes.x2 "0"
-                    , Svg.Attributes.y2 "40"
-                    , Svg.Attributes.class overlayClassName
-                    ]
-                    []
-                ]
+overlayLine rotation overlay =
+    Svg.g [ rotation ]
+        [ Svg.line
+            [ Svg.Attributes.x1 "0"
+            , Svg.Attributes.y1 "0.866"
+            , Svg.Attributes.x2 "0"
+            , Svg.Attributes.y2 "40"
+            , classListOld [ ( "row-counter-overlay", True ), ( "row-counter-active", overlay ) ]
             ]
+            []
+        ]
 
 
 {-| This function creates a hexagon with a sidelength of 0.9 as a svg polygon.
@@ -264,33 +331,25 @@ hexagon hexClass =
 flowerNbhdPolygon : Bool -> Svg msg
 flowerNbhdPolygon active =
     Svg.polygon
-        [ Svg.Attributes.class
-            (if active then
-                "flower-overlay flower-active"
-             else
-                "flower-overlay"
-            )
+        [ classListOld [ ( "flower-overlay", True ), ( "flower-active", active ) ]
         , points "0.5,4.33 1,3.464 2,3.464 2.5,2.598 3.5,2.598 4,1.732 3.5,0.866 4,0 3.5,-0.866 4,-1.732 3.5,-2.598 2.5,-2.598 2,-3.464 1,-3.464 0.5,-4.33 -0.5,-4.33 -1,-3.464 -2,-3.464 -2.5,-2.598 -3.5,-2.598 -4,-1.732 -3.5,-0.866 -4,0 -3.5,0.866 -4,1.732 -3.5,2.598 -2.5,2.598 -2,3.464 -1,3.464 -0.5,4.33"
         , transform "scale(0.9)"
         ]
         []
 
 
-withCaption : Coordinate -> String -> Bool -> String -> Svg Msg
+withCaption : Coordinate -> String -> Bool -> String -> CellDisplay
 withCaption coordinate hexClass enabled caption =
-    Svg.g
-        [ atCoordinate coordinate
-        , Svg.Attributes.class
-            (if enabled then
-                "cell"
-             else
-                "cell disabled"
-            )
-        , onRightClick (ToggleEnabled coordinate (not enabled))
-        ]
+    { class = classList [ ( "cell", True ), ( "disabled", not enabled ) ]
+    , coordinate = coordinate
+    , leftClick = Nothing
+    , rightClick = Just (ToggleEnabled coordinate (not enabled))
+    , content =
         [ hexagon hexClass
         , centeredCaption caption
         ]
+    , overlay = Nothing
+    }
 
 
 centeredCaption : String -> Svg msg
@@ -317,14 +376,14 @@ bottomCaption caption =
 
 atCoordinate : Coordinate -> Svg.Attribute msg
 atCoordinate coordinate =
-    transform
-        ("translate("
-            ++ toString (1.5 * toFloat coordinate.x)
-            ++ ","
-            ++ toString
-                (0.866 * toFloat coordinate.y)
-            ++ ")"
-        )
+    [ "translate("
+    , toString (1.5 * toFloat coordinate.x)
+    , ","
+    , toString (0.866 * toFloat coordinate.y)
+    , ")"
+    ]
+        |> String.join ""
+        |> transform
 
 
 rotation : Direction -> Svg.Attribute msg
