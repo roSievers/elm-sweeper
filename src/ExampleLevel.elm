@@ -1,9 +1,17 @@
-module ExampleLevel exposing (grid1)
+module ExampleLevel exposing (level1)
 
 import Dict
 import Grid exposing (Grid, Direction(..))
 import Types exposing (..)
 import Cell exposing (Cell, empty, count, typedCount, mine, flower, rowCount, typedRowCount)
+
+
+level1 =
+  { title = "Feature testing level"
+  , author = "Rolf Sievers"
+  , comments = []
+  , content = grid1
+  }
 
 
 grid1 : Grid Cell

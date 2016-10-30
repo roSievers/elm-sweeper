@@ -6,13 +6,21 @@ import Grid exposing (Grid, Direction, Coordinate)
 import Cell exposing (Cell)
 
 
+type alias Level =
+    { title : String
+    , author : String
+    , comments : List String
+    , content : Grid Cell
+    }
+
+
 type MouseButton
     = LeftButton
     | RightButton
 
 
 type alias GameModel =
-    { level : Grid Cell
+    { level : Level
     , mistakes : Int
     }
 
@@ -33,4 +41,4 @@ type Msg
     | FlipControlls
     | SetRoute Route
     | PasteBoxEdit String
-    | NewLevel (Grid Cell)
+    | NewLevel Level

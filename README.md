@@ -8,6 +8,8 @@ Minesweeper with hand crafted levels.
 Community made levels are collected on
 [/r/hexcellslevels](https://www.reddit.com/r/hexcellslevels/).
 
+One core thing I am aiming for is directly linking levels from other websites (e.g. reddit) skipping the copy-open hexcells-start game sequence.
+
 ## Screenshots
 
 Early development version, loading and playing levels works, but there is no propper menu flow yet. (28.10.16)
@@ -30,6 +32,7 @@ from the project root, then open [index.html](http://localhost:8000/index.html) 
 
 ### Elm Sweeper has
 
+  - Arbitrary level size
   - Ability to fade out all numbers, not only flowers and rows. (Which is really the reason this whole project got started.)
 
 ### Elm Sweeper might someday have

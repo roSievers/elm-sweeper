@@ -12,45 +12,14 @@ import Combine.Infix exposing (..)
 import List.Extra as List
 
 
-type alias Level =
-    { title : String
-    , author : String
-    , grid : Grid Cell
-    }
-
-
-type alias Intermediate =
-    { title : String
-    , author : String
-    , comments : List String
-    , content : Grid Cell
-    }
-
-
-{-| How does parsing a Hexcells level file work?
-
-  - Expect the Hexcells level v1 header
-  - Parse the Title and Author
-  - Expect two linebreaks
-  - Parse tiles into Array2 (Maybe Cell)
-  - Get rid of Cells at half heights and dump results into Grid
-    - Maybe do this by seperating the array into two interlocking Grids
-      and verifying that one is empty and the other nonempty.
-
--}
-
-
-
--- TODO: Handle last line not terminating in linebreak.
---parseLevel : String -> Intermediate
-
-
+parseLevel : String -> Result (List String) Level
 parseLevel inputString =
     parse
         (versionStatement
-            *> (Intermediate <$> readline <*> readline <*> comments <*> cellGrid <* end)
+            *> (Level <$> readline <*> readline <*> comments <*> cellGrid <* end)
         )
         inputString
+        |> \(result, _) -> result
 
 
 versionStatement =

@@ -1,4 +1,4 @@
-module GameView exposing (gameView, viewLevel)
+module GameView exposing (gameView, viewLevel, previewLevel)
 
 import Html exposing (Html, div, text)
 import Html.App
@@ -19,16 +19,57 @@ import Counting exposing (..)
 gameView : Bool -> GameModel -> Html Msg
 gameView flippedControlls model =
     div []
-        [ viewLevel "levelView" model.level
-        , Html.div [ Html.Attributes.id "levelMeta" ] [ Html.text "Information about the Level." ]
+        [ viewLevel "levelView" model.level.content
+        , attribution model.level
+        , sidebar flippedControlls model
+        ]
+
+
+sidebar : Bool -> GameModel -> Html Msg
+sidebar flippedControlls model =
+    Html.div [ Html.Attributes.id "levelSidebar" ]
+      [ stats model
+      , Html.br [] []
+      , intentDisplay flippedControlls
+      , Html.br [] []
+      , Html.button [ Html.Events.onClick (SetRoute MainMenu) ] [ Html.text "Main Menu" ]
+      ]
+
+stats : GameModel -> Html msg
+stats model =
+    let
+        minesLeft =
+            Grid.count Cell.isHiddenMine model.level.content
+
+        mineText =
+            if minesLeft == 0 then
+                "No mines left"
+            else if minesLeft == 1 then
+                "1 mine left"
+            else
+                toString minesLeft ++ " mines left"
+
+        mistakeText =
+            if model.mistakes == 0 then
+                "Flawless"
+            else if model.mistakes == 1 then
+                "1 mistake"
+            else
+                toString model.mistakes ++ " mistakes"
+    in
+        Html.div []
+            [ Html.text mineText
+            , Html.br [] []
+            , Html.text mistakeText
+            ]
+
+
+attribution : Level -> Html msg
+attribution level =
+    Html.div [ Html.Attributes.id "levelMeta" ]
+        [ Html.text level.title
         , Html.br [] []
-        , Html.text <| "Remaining: " ++ (toString <| Grid.count Cell.isHiddenMine model.level)
-        , Html.br [] []
-        , Html.text ("Mistakes: " ++ toString model.mistakes)
-        , Html.br [] []
-        , intentDisplay flippedControlls
-        , Html.br [] []
-        , Html.button [ Html.Events.onClick (SetRoute MainMenu) ] [ Html.text "Main Menu" ]
+        , Html.text <| "by " ++ level.author
         ]
 
 
@@ -43,6 +84,20 @@ viewLevel idAttribute grid =
         svg
             [ Html.Attributes.id idAttribute, width "100", height "80", visibleArea, preserveAspectRatio "xMidYMid meet" ]
             [ Grid.view cellSvgInteractive grid
+            ]
+
+
+previewLevel : String -> Grid Cell -> Html.Html msg
+previewLevel idAttribute grid =
+    let
+        visibleArea =
+            Grid.boundingBox grid
+                |> Maybe.map (levelBox >> viewBox)
+                |> Maybe.withDefault (viewBox "0 0 20 16")
+    in
+        svg
+            [ Html.Attributes.id idAttribute, width "100", height "80", visibleArea, preserveAspectRatio "xMidYMid meet" ]
+            [ Grid.view cellSvgPreview grid
             ]
 
 

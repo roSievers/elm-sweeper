@@ -16,6 +16,9 @@ import Monocle.Optional as Optional
 import Monocle.Common exposing ((=>))
 import HexcellParser
 
+(>>>) : Lens a b -> Lens b c -> Lens a c
+(>>>) = Lens.compose
+
 
 main =
     Html.App.program
@@ -43,9 +46,18 @@ gameModel =
     Lens (.currentGame) (\gModel model -> { model | currentGame = gModel })
 
 
-gameGrid : Lens GameModel (Grid Cell)
+gameLevel : Lens GameModel Level
+gameLevel =
+    Lens (.level) (\newLevel model -> { model | level = newLevel })
+
+
+gameGrid : Lens Level (Grid Cell)
 gameGrid =
-    Lens (.level) (\newGrid model -> { model | level = newGrid })
+    Lens (.content) (\newGrid model -> {model | content = newGrid})
+
+
+grid : Lens Model (Grid Cell)
+grid = gameModel >>> gameLevel >>> gameGrid
 
 
 init : Return msg Model
@@ -60,7 +72,7 @@ init =
 
 initExampleGame : GameModel
 initExampleGame =
-    { level = ExampleLevel.grid1
+    { level = ExampleLevel.level1
     , mistakes = 0
     }
 
@@ -81,7 +93,7 @@ update action model =
         ToggleOverlay coordinate overlay ->
             model
                 |> Optional.modify
-                    (Optional.fromLens (Lens.compose gameModel gameGrid)
+                    (Optional.fromLens (gameModel >>> gameLevel >>> gameGrid)
                         => (Grid.at coordinate)
                     )
                     (Cell.setOverlay overlay)
@@ -90,7 +102,7 @@ update action model =
         ToggleEnabled coordinate enabled ->
             model
                 |> Optional.modify
-                    (Optional.fromLens (Lens.compose gameModel gameGrid)
+                    (Optional.fromLens (gameModel >>> gameLevel >>> gameGrid)
                         => (Grid.at coordinate)
                     )
                     (if enabled then
@@ -109,9 +121,9 @@ update action model =
         PasteBoxEdit newPaste ->
             Return.singleton { model | pasteBox = newPaste }
 
-        NewLevel grid ->
+        NewLevel level ->
             model
-                |> modify gameModel (setGrid grid)
+                |> .set (gameModel >>> gameLevel) level
                 |> Return.singleton
 
 
@@ -133,7 +145,7 @@ handleReveal flippedControlls button coordinate model =
                 case mineClicked == mineDesired of
                     True ->
                         Optional.modify
-                            ((Optional.fromLens gameGrid) => (Grid.at coordinate))
+                            (Optional.fromLens (gameLevel >>> gameGrid) => (Grid.at coordinate))
                             Cell.reveal
                             model
 
@@ -142,13 +154,8 @@ handleReveal flippedControlls button coordinate model =
                             | mistakes = model.mistakes + 1
                         }
         )
-        (Grid.get coordinate model.level)
+        (Grid.get coordinate model.level.content)
         |> Maybe.withDefault model
-
-
-setGrid : Grid Cell -> GameModel -> GameModel
-setGrid grid model =
-    { model | level = grid }
 
 
 
@@ -187,26 +194,22 @@ mainMenuView model =
             ]
             []
         , br [] []
-        , parsedResultView (first (HexcellParser.parseLevel model.pasteBox))
+        , parsedResultView (HexcellParser.parseLevel model.pasteBox)
         ]
 
 
-first ( a, _ ) =
-    a
-
-
-parsedResultView : Result (List String) HexcellParser.Intermediate -> Html Msg
+parsedResultView : Result (List String) Level -> Html Msg
 parsedResultView parseResult =
     case parseResult of
         Err errorMessage ->
             text ("Parsing Error: " ++ toString errorMessage)
 
-        Ok intermediate ->
+        Ok level ->
             div []
                 [ text "Parsing successful!"
-                , text <| "Author: " ++ intermediate.author
-                , text <| "Title: " ++ intermediate.title
-                , GameView.viewLevel "levelPreview" intermediate.content
+                , text <| "Author: " ++ level.author
+                , text <| "Title: " ++ level.title
+                , GameView.previewLevel "levelPreview" level.content
                 , br [] []
-                , button [ onClick (NewLevel intermediate.content) ] [ text "Load Level" ]
+                , button [ onClick (NewLevel level) ] [ text "Load Level" ]
                 ]
