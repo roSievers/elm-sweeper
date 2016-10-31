@@ -19,21 +19,31 @@ import Counting exposing (..)
 gameView : Bool -> GameModel -> Html Msg
 gameView flippedControlls model =
     div []
-        [ viewLevel "levelView" model.level.content
+        [ flexibleMainContent
+            (viewLevel "levelView" model.level.content)
+            (sidebar flippedControlls model)
         , attribution model.level
-        , sidebar flippedControlls model
+        ]
+
+
+flexibleMainContent : Html msg -> Html msg -> Html msg
+flexibleMainContent mainContent sidebar =
+    div [ Html.Attributes.id "flexbox-wrapper" ]
+        [ div [ Html.Attributes.id "flexbox-sidebar" ] [ sidebar ]
+        , div [ Html.Attributes.id "flexbox-main" ] [ mainContent ]
         ]
 
 
 sidebar : Bool -> GameModel -> Html Msg
 sidebar flippedControlls model =
-    Html.div [ Html.Attributes.id "levelSidebar" ]
-      [ stats model
-      , Html.br [] []
-      , intentDisplay flippedControlls
-      , Html.br [] []
-      , Html.button [ Html.Events.onClick (SetRoute MainMenu) ] [ Html.text "Main Menu" ]
-      ]
+    Html.div []
+        [ stats model
+        , Html.br [] []
+        , intentDisplay flippedControlls
+        , Html.br [] []
+        , Html.button [ Html.Events.onClick (SetRoute MainMenu) ] [ Html.text "Main Menu" ]
+        ]
+
 
 stats : GameModel -> Html msg
 stats model =
@@ -57,10 +67,23 @@ stats model =
             else
                 toString model.mistakes ++ " mistakes"
     in
-        Html.div []
-            [ Html.text mineText
-            , Html.br [] []
-            , Html.text mistakeText
+        Svg.svg
+            [ Html.Attributes.id "errorCounter"
+            , width "100%"
+            , viewBox "-100 0 200 120"
+            ]
+            [ Svg.rect [ x "-95", y "10", width "190", height "45", style "fill:blue" ] []
+            , Svg.rect [ x "-95", y "60", width "190", height "45", style "fill:blue" ] []
+            , Svg.text'
+                [ Svg.Attributes.style "text-anchor:middle;fill:lightgray;font-weight:bold;"
+                , atCoordinate { x = 0, y = 45 }
+                ]
+                [ Svg.text mineText ]
+            , Svg.text'
+                [ Svg.Attributes.style "text-anchor:middle;fill:lightgray;font-weight:bold;"
+                , atCoordinate { x = 0, y = 100 }
+                ]
+                [ Svg.text mistakeText ]
             ]
 
 
@@ -322,15 +345,6 @@ hiddenSvg coordinate =
 
 
 
-{-
-   { class =
-   , coordinate = coordinate
-   , leftClick =
-   , rightClick =
-   , content =
-   , overlay =
-   }
--}
 -- Helper functions used by the various cell view functions
 
 
@@ -472,7 +486,7 @@ intentDisplay flippedControlls =
                 ""
             )
         , Svg.Events.onClick FlipControlls
-        , viewBox "-1.4 -1.2 2.8 2.4"
+        , viewBox "-1.2 -1.2 2.4 2.4"
         , preserveAspectRatio "xMidYMid meet"
         ]
         [ Svg.g

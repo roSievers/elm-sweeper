@@ -3,6 +3,39 @@ html, head, body {
     height: 100%;
 }
 
+/* http://stackoverflow.com/questions/14319097/css-auto-resize-div-to-fit-container-width */
+
+#flexbox-wrapper {
+  display: -webkit-box;
+  display: -moz-box;
+  display: box;
+  width: 100%;
+  height: 100%;
+
+ -moz-box-orient: horizontal;
+ box-orient: horizontal;
+ -webkit-box-orient: horizontal;
+}
+
+#flexbox-sidebar {
+      width:200px;
+      margin-left:10px;
+
+     -webkit-box-flex: 0;
+     -moz-box-flex: 0;
+     box-flex: 0;
+}
+
+#flexbox-main {
+      min-width:400px;
+      margin-left:10px;
+      margin-right:10px;
+
+     -webkit-box-flex: 1;
+     -moz-box-flex: 1;
+      box-flex: 1;
+}
+
 #levelView {
     width: 100%;
     height: 100%;
@@ -73,7 +106,6 @@ text {
 
 #intent {
     width: 100%;
-    height: 200px;
 }
 
 #intent .left-click-intent {
@@ -104,10 +136,6 @@ text {
 }
 
 #levelSidebar {
-    position: absolute;
-    left: 20px;
-    top: 10px;
-    z-index: 1;
     text-align: center;
     font-size: 20pt;
 }
