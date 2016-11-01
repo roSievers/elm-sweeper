@@ -21,16 +21,20 @@ gameView flippedControlls model =
     div []
         [ flexibleMainContent
             (viewLevel "levelView" model.level.content)
+            (comment model.level.comments)
             (sidebar flippedControlls model)
         , attribution model.level
         ]
 
 
-flexibleMainContent : Html msg -> Html msg -> Html msg
-flexibleMainContent mainContent sidebar =
+flexibleMainContent : Html msg -> Html msg -> Html msg -> Html msg
+flexibleMainContent mainContent footer sidebar =
     div [ Html.Attributes.id "flexbox-wrapper" ]
         [ div [ Html.Attributes.id "flexbox-sidebar" ] [ sidebar ]
-        , div [ Html.Attributes.id "flexbox-main" ] [ mainContent ]
+        , div [ Html.Attributes.id "flexbox-main" ]
+          [ div [Html.Attributes.id "flexbox-grid"] [ mainContent ]
+          , div [Html.Attributes.id "flexbox-footer"] [ footer ]
+          ]
         ]
 
 
@@ -94,6 +98,26 @@ attribution level =
         , Html.br [] []
         , Html.text <| "by " ++ level.author
         ]
+
+{-| TODO: This should somehow shrink if only one line of text is present.
+Then `viewBox "-100 0 200 40"` and a #flexbox-footer.height of 100px is good. -}
+comment : List String -> Html msg
+comment comments =
+    let
+        textNode index caption =
+          Svg.text'
+              [ Svg.Attributes.style "text-anchor:middle;fill:lightgray;font-weight:bold;"
+              , atCoordinate { x = 0, y = 30 + index * 30 }
+              ]
+              [ Svg.text caption ]
+    in
+        Svg.svg
+            [ Html.Attributes.id "comments"
+            , width "100%"
+            , height "100%"
+            , viewBox "-100 0 200 70"
+            ]
+            (List.indexedMap textNode comments)
 
 
 viewLevel : String -> Grid Cell -> Html.Html Msg

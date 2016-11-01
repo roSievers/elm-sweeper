@@ -34,6 +34,30 @@ html, head, body {
      -webkit-box-flex: 1;
      -moz-box-flex: 1;
       box-flex: 1;
+
+    /* meins */
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+}
+
+#flexbox-grid {
+      min-height:400px;
+
+     -webkit-box-flex: 1;
+     -moz-box-flex: 1;
+      box-flex: 1;
+
+}
+
+#flexbox-footer {
+      height:200px;
+
+     -webkit-box-flex: 0;
+     -moz-box-flex: 0;
+     box-flex: 0;
+
 }
 
 #levelView {

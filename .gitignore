@@ -2,3 +2,5 @@
 elm-stuff/
 # elm-repl generated files
 repl-temp-*
+# The levels folder can't be uploaded, because I haven't asked the authors.
+levels/
