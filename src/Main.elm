@@ -11,6 +11,7 @@ import Types exposing (..)
 import Cell exposing (Cell)
 import ExampleLevel
 import GameView
+import Tutorial exposing (tutorial)
 import Monocle.Lens as Lens exposing (Lens, modify)
 import Monocle.Optional as Optional
 import Monocle.Common exposing ((=>))
@@ -63,7 +64,7 @@ grid = gameModel >>> gameLevel >>> gameGrid
 init : Return msg Model
 init =
     Return.singleton
-        { route = InGame
+        { route = Tutorial
         , currentGame = initExampleGame
         , pasteBox = ""
         , flippedControlls = True
@@ -84,33 +85,14 @@ initExampleGame =
 update : Msg -> Model -> Return msg Model
 update action model =
     case action of
-        Reveal button coordinate ->
+        GameMsg gameAction ->
             model
                 |> modify gameModel
-                    (handleReveal model.flippedControlls button coordinate)
+                    (updateGame model.flippedControlls gameAction)
                 |> Return.singleton
 
-        ToggleOverlay coordinate overlay ->
-            model
-                |> Optional.modify
-                    (Optional.fromLens (gameModel >>> gameLevel >>> gameGrid)
-                        => (Grid.at coordinate)
-                    )
-                    (Cell.setOverlay overlay)
-                |> Return.singleton
-
-        ToggleEnabled coordinate enabled ->
-            model
-                |> Optional.modify
-                    (Optional.fromLens (gameModel >>> gameLevel >>> gameGrid)
-                        => (Grid.at coordinate)
-                    )
-                    (if enabled then
-                        Cell.setEnabled enabled
-                     else
-                        Cell.setEnabled enabled >> Cell.setOverlay False
-                    )
-                |> Return.singleton
+        TutorialMsg _ _ ->
+            Return.singleton model
 
         FlipControlls ->
             Return.singleton { model | flippedControlls = not model.flippedControlls }
@@ -126,6 +108,32 @@ update action model =
                 |> .set (gameModel >>> gameLevel) level
                 |> Return.singleton
 
+
+updateGame : Bool -> GameAction -> GameModel -> GameModel
+updateGame flippedControlls action model =
+    case action of
+      Reveal button coordinate ->
+          handleReveal flippedControlls button coordinate model
+
+      ToggleOverlay coordinate overlay ->
+          model
+              |> Optional.modify
+                  (Optional.fromLens (gameLevel >>> gameGrid)
+                      => (Grid.at coordinate)
+                  )
+                  (Cell.setOverlay overlay)
+
+      ToggleEnabled coordinate enabled ->
+          model
+              |> Optional.modify
+                  (Optional.fromLens (gameLevel >>> gameGrid)
+                      => (Grid.at coordinate)
+                  )
+                  (if enabled then
+                      Cell.setEnabled enabled
+                   else
+                      Cell.setEnabled enabled >> Cell.setOverlay False
+                  )
 
 
 -- Update helper functions used while ingame
@@ -180,11 +188,15 @@ view model =
         MainMenu ->
             mainMenuView model
 
+        Tutorial ->
+            tutorial model.flippedControlls
+
 
 mainMenuView : Model -> Html Msg
 mainMenuView model =
     div []
         [ text "Fancy Main Menu!"
+        , button [ onClick (SetRoute Tutorial) ] [ text "Tutorial" ]
         , button [ onClick (SetRoute InGame) ] [ text "CurrentGame" ]
         , br [] []
         , textarea

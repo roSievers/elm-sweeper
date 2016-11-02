@@ -1,4 +1,4 @@
-module HexcellParser exposing (..)
+module HexcellParser exposing (parseLevel, parseCellGrid)
 
 --import Result
 
@@ -20,6 +20,12 @@ parseLevel inputString =
         )
         inputString
         |> \(result, _) -> result
+
+
+parseCellGrid : String -> Result (List String) (Grid Cell)
+parseCellGrid inputString =
+    parse (many newline *> cellGrid <* end) inputString
+      |> \(result, _) -> result
 
 
 versionStatement =

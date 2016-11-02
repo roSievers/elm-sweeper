@@ -28,6 +28,7 @@ type alias GameModel =
 type Route
     = MainMenu
     | InGame
+    | Tutorial
 
 
 
@@ -35,10 +36,15 @@ type Route
 
 
 type Msg
-    = Reveal MouseButton Coordinate
-    | ToggleOverlay Coordinate Bool
-    | ToggleEnabled Coordinate Bool
+    = GameMsg GameAction
+    | TutorialMsg String GameAction
     | FlipControlls
     | SetRoute Route
     | PasteBoxEdit String
     | NewLevel Level
+
+
+type GameAction
+    = Reveal MouseButton Coordinate
+    | ToggleOverlay Coordinate Bool
+    | ToggleEnabled Coordinate Bool

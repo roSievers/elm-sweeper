@@ -20,7 +20,8 @@ gameView : Bool -> GameModel -> Html Msg
 gameView flippedControlls model =
     div []
         [ flexibleMainContent
-            (viewLevel "levelView" model.level.content)
+            (viewLevel "levelView" "" model.level.content
+              |> Html.App.map GameMsg)
             (comment model.level.comments)
             (sidebar flippedControlls model)
         , attribution model.level
@@ -120,8 +121,8 @@ comment comments =
             (List.indexedMap textNode comments)
 
 
-viewLevel : String -> Grid Cell -> Html.Html Msg
-viewLevel idAttribute grid =
+viewLevel : String -> String -> Grid Cell -> Html.Html GameAction
+viewLevel idAttribute className grid =
     let
         visibleArea =
             Grid.boundingBox grid
@@ -129,7 +130,9 @@ viewLevel idAttribute grid =
                 |> Maybe.withDefault (viewBox "0 0 20 16")
     in
         svg
-            [ Html.Attributes.id idAttribute, width "100", height "80", visibleArea, preserveAspectRatio "xMidYMid meet" ]
+            [ Html.Attributes.id idAttribute
+            , Svg.Attributes.class className
+            , width "100", height "80", visibleArea, preserveAspectRatio "xMidYMid meet" ]
             [ Grid.view cellSvgInteractive grid
             ]
 
@@ -182,7 +185,7 @@ cellSvg grid coordinate cell =
             rowCountSvg grid coordinate data
 
 
-cellSvgInteractive : Grid Cell -> Coordinate -> Cell -> Grid.SvgStack Msg
+cellSvgInteractive : Grid Cell -> Coordinate -> Cell -> Grid.SvgStack GameAction
 cellSvgInteractive grid coordinate cell =
     cellSvg grid coordinate cell
         |> genericCellInteractive
@@ -204,14 +207,14 @@ replaced by Svg.map once Elm 0.18 is out.
 type alias CellDisplay =
     { class : String
     , coordinate : Coordinate
-    , leftClick : Maybe Msg
-    , rightClick : Maybe Msg
+    , leftClick : Maybe GameAction
+    , rightClick : Maybe GameAction
     , content : List (Svg Never)
     , overlay : Maybe (List (Svg Never))
     }
 
 
-genericCellInteractive : CellDisplay -> Grid.SvgStack Msg
+genericCellInteractive : CellDisplay -> Grid.SvgStack GameAction
 genericCellInteractive displayData =
     let
         position =
