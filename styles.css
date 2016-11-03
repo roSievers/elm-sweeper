@@ -167,12 +167,11 @@ text {
 
 #inner-text-container {
     max-width: 800px;
-    border-left: thin solid lightgray;
-    border-right: thin solid lightgray;
-    border-top: thin solid lightgray;
+    border: thin solid lightgray;
     padding: 30px;
     padding-top: 0px;
     margin-top: 30px;
+    margin-bottom: 30px;
 }
 
 a {

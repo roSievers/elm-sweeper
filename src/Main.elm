@@ -9,16 +9,19 @@ import Dict exposing (Dict)
 import Grid exposing (Grid, Direction(..), Coordinate)
 import Types exposing (..)
 import Cell exposing (Cell)
+import Game
 import ExampleLevel
 import GameView
-import Tutorial exposing (tutorial)
+import Tutorial exposing (tutorial, TutorialModel)
 import Monocle.Lens as Lens exposing (Lens, modify)
 import Monocle.Optional as Optional
 import Monocle.Common exposing ((=>))
 import HexcellParser
 
+
 (>>>) : Lens a b -> Lens b c -> Lens a c
-(>>>) = Lens.compose
+(>>>) =
+    Lens.compose
 
 
 main =
@@ -37,6 +40,7 @@ main =
 type alias Model =
     { route : Route
     , currentGame : GameModel
+    , tutorial : TutorialModel
     , pasteBox : String
     , flippedControlls : Bool
     }
@@ -52,13 +56,9 @@ gameLevel =
     Lens (.level) (\newLevel model -> { model | level = newLevel })
 
 
-gameGrid : Lens Level (Grid Cell)
-gameGrid =
-    Lens (.content) (\newGrid model -> {model | content = newGrid})
 
-
-grid : Lens Model (Grid Cell)
-grid = gameModel >>> gameLevel >>> gameGrid
+--grid : Lens Model (Grid Cell)
+--grid = gameModel >>> gameLevel >>> gameGrid
 
 
 init : Return msg Model
@@ -66,6 +66,7 @@ init =
     Return.singleton
         { route = Tutorial
         , currentGame = initExampleGame
+        , tutorial = Tutorial.init
         , pasteBox = ""
         , flippedControlls = True
         }
@@ -88,11 +89,12 @@ update action model =
         GameMsg gameAction ->
             model
                 |> modify gameModel
-                    (updateGame model.flippedControlls gameAction)
+                    (Game.updateGame model.flippedControlls gameAction)
                 |> Return.singleton
 
-        TutorialMsg _ _ ->
-            Return.singleton model
+        TutorialMsg exampleId action ->
+            Return.singleton
+                { model | tutorial = Tutorial.updateTutorial model.flippedControlls exampleId action model.tutorial }
 
         FlipControlls ->
             Return.singleton { model | flippedControlls = not model.flippedControlls }
@@ -107,63 +109,6 @@ update action model =
             model
                 |> .set (gameModel >>> gameLevel) level
                 |> Return.singleton
-
-
-updateGame : Bool -> GameAction -> GameModel -> GameModel
-updateGame flippedControlls action model =
-    case action of
-      Reveal button coordinate ->
-          handleReveal flippedControlls button coordinate model
-
-      ToggleOverlay coordinate overlay ->
-          model
-              |> Optional.modify
-                  (Optional.fromLens (gameLevel >>> gameGrid)
-                      => (Grid.at coordinate)
-                  )
-                  (Cell.setOverlay overlay)
-
-      ToggleEnabled coordinate enabled ->
-          model
-              |> Optional.modify
-                  (Optional.fromLens (gameLevel >>> gameGrid)
-                      => (Grid.at coordinate)
-                  )
-                  (if enabled then
-                      Cell.setEnabled enabled
-                   else
-                      Cell.setEnabled enabled >> Cell.setOverlay False
-                  )
-
-
--- Update helper functions used while ingame
-
-
-handleReveal : Bool -> MouseButton -> Coordinate -> GameModel -> GameModel
-handleReveal flippedControlls button coordinate model =
-    Maybe.map
-        (\cell ->
-            let
-                mineClicked =
-                    Cell.isMine cell
-
-                mineDesired =
-                    xor (button == LeftButton) flippedControlls
-            in
-                case mineClicked == mineDesired of
-                    True ->
-                        Optional.modify
-                            (Optional.fromLens (gameLevel >>> gameGrid) => (Grid.at coordinate))
-                            Cell.reveal
-                            model
-
-                    False ->
-                        { model
-                            | mistakes = model.mistakes + 1
-                        }
-        )
-        (Grid.get coordinate model.level.content)
-        |> Maybe.withDefault model
 
 
 
@@ -189,7 +134,7 @@ view model =
             mainMenuView model
 
         Tutorial ->
-            tutorial model.flippedControlls
+            tutorial model.flippedControlls model.tutorial
 
 
 mainMenuView : Model -> Html Msg
