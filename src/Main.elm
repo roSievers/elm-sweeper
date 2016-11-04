@@ -13,7 +13,7 @@ import Game
 import ExampleLevel
 import GameView
 import Tutorial exposing (tutorial, TutorialModel)
-import Monocle.Lens as Lens exposing (Lens, modify)
+import Monocle.Lens as Lens exposing (Lens)
 import Monocle.Optional as Optional
 import Monocle.Common exposing ((=>))
 import HexcellParser
@@ -42,7 +42,7 @@ type alias Model =
     , currentGame : GameModel
     , tutorial : TutorialModel
     , pasteBox : String
-    , flippedControlls : Bool
+    , config : Config
     }
 
 
@@ -56,9 +56,14 @@ gameLevel =
     Lens (.level) (\newLevel model -> { model | level = newLevel })
 
 
+config : Lens Model Config
+config =
+    Lens (.config) (\newConfig model -> { model | config = newConfig })
 
---grid : Lens Model (Grid Cell)
---grid = gameModel >>> gameLevel >>> gameGrid
+
+flippedControlls : Lens Config Bool
+flippedControlls =
+    Lens (.flippedControlls) (\newState config -> { config | flippedControlls = newState })
 
 
 init : Return msg Model
@@ -68,7 +73,10 @@ init =
         , currentGame = initExampleGame
         , tutorial = Tutorial.tutorial
         , pasteBox = ""
-        , flippedControlls = True
+        , config =
+            { flippedControlls = True
+            , tabletMode = True
+            }
         }
 
 
@@ -88,16 +96,18 @@ update action model =
     case action of
         GameMsg gameAction ->
             model
-                |> modify gameModel
-                    (Game.updateGame model.flippedControlls gameAction)
+                |> Lens.modify gameModel
+                    (Game.updateGame model.config gameAction)
                 |> Return.singleton
 
         TutorialMsg exampleId action ->
             Return.singleton
-                { model | tutorial = Tutorial.updateTutorial model.flippedControlls exampleId action model.tutorial }
+                { model | tutorial = Tutorial.updateTutorial model.config exampleId action model.tutorial }
 
         FlipControlls ->
-            Return.singleton { model | flippedControlls = not model.flippedControlls }
+            model
+                |> Lens.modify (config >>> flippedControlls) not
+                |> Return.singleton
 
         SetRoute route ->
             Return.singleton { model | route = route }
@@ -128,13 +138,13 @@ view : Model -> Html Msg
 view model =
     case model.route of
         InGame ->
-            GameView.gameView model.flippedControlls model.currentGame
+            GameView.gameView model.config model.currentGame
 
         MainMenu ->
             mainMenuView model
 
         Tutorial ->
-            Tutorial.toHtml model.flippedControlls model.tutorial
+            Tutorial.toHtml model.config model.tutorial
 
 
 mainMenuView : Model -> Html Msg

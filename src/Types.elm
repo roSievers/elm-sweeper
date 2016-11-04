@@ -30,7 +30,10 @@ type Route
     | InGame
     | Tutorial
 
-
+type alias Config =
+    { flippedControlls : Bool
+    , tabletMode : Bool
+    }
 
 -- Messages
 

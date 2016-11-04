@@ -24,7 +24,7 @@ import Literate exposing (LiteratePuzzle, Segment(..), RenderConfig)
 
 
 type alias TutorialModel =
-    LiteratePuzzle Bool Example Msg
+    LiteratePuzzle Config Example Msg
 
 
 {-| The tutorial, written using the Literate library.
@@ -45,9 +45,9 @@ The number tells you how many of the adjacent hexes contain mines.
     , DynamicMarkdown
         (\config ->
             "If you have figured out that a hex is empty you can **reveal it using your "
-                ++ revealButton config
+                ++ revealButton config.flippedControlls
                 ++ " mouse button**. If you know the position of a mine, **mark it with your "
-                ++ mineButton config
+                ++ mineButton config.flippedControlls
                 ++ "** mouse button."
         )
     , StaticHtml
@@ -105,13 +105,64 @@ X...X...X...X.....On..
     , StaticMarkdown """
 To get some practice with these “typed hints” here are some more levels:
 
-**TODO:** Embed several levels in here. With some GUI (Mistakes, Mines left)
+**TODO:** These levels belong in one tabbed container with only one visible at a time.
+Puzzle nr. 4 (The mask puzzle) requires a visible remaining mines counter.
 """
+    , puzzleInline Medium """
+....o+....
+..o+..oc..
+x...o+..x.
+..oc..x...
+x.......x.
+..o+..oc..
+On..on..x.
+..x...x...
+....o+...."""
+    , puzzleInline Medium """
+....x.....
+..o+..o+..
+o+..on..o+
+..o+..x...
+x.......x.
+..o+..on..
+On..oc..o+
+..x...x...
+....x....."""
+    , puzzleInline Medium """
+....x.....
+..o+..x...
+o+..Oc..O+
+..o+..o+..
+....o+...."""
+    , puzzleInline Medium """
+....o+..........x.....
+......o+......o+......
+....o+..o+..o+..x.....
+..x...x...o+..on..o...
+x.......X...X.......o.
+..o+..x...o+..o+..o+..
+....O+..Oc..O+..Oc....
+......x.......x.......
+....o...........x....."""
+    , puzzleInline Medium """
+............o+....
+..........O+..On..
+....o+..x...x...x.
+..o+..on..o+..o+..
+x...Oc..O+..o+..O+
+..o+..x...........
+....x.......o+..o+
+..............o+.."""
     , StaticMarkdown """
 # Mines on lines
 
 The next type of hint to learn about are vertical and diagonal sums. These are
 sometimes typed as well, but work subtly different.
+
+"""
+    , StaticMarkdown """
+# Flowers (Hints on Mines)
+
 
 """
     ]
@@ -163,7 +214,7 @@ sizeClass height =
             "inline-large"
 
 
-renderExample : config -> Example -> Html GameAction
+renderExample : Config -> Example -> Html GameAction
 renderExample _ example =
     case example of
         Plain data ->
@@ -181,20 +232,20 @@ tagExampleMsg id exampleMsg =
     TutorialMsg id exampleMsg
 
 
-renderConfig : RenderConfig Bool Example GameAction Msg
+renderConfig : RenderConfig Config Example GameAction Msg
 renderConfig =
     { renderExample = renderExample
     , tagExampleMsg = tagExampleMsg
     }
 
 
-updateExample : Bool -> GameAction -> Example -> Example
-updateExample flippedControlls action example =
+updateExample : Config -> GameAction -> Example -> Example
+updateExample config action example =
     case example of
         Plain data ->
             Plain
                 (Optional.modify (grid => asGameModel)
-                    (Game.updateGame flippedControlls action)
+                    (Game.updateGame config action)
                     data
                 )
 
@@ -228,17 +279,17 @@ asGameModel =
     }
 
 
-updateTutorial : Bool -> Int -> GameAction -> TutorialModel -> TutorialModel
-updateTutorial flippedControlls exampleId action model =
+updateTutorial : Config -> Int -> GameAction -> TutorialModel -> TutorialModel
+updateTutorial config exampleId action model =
     Literate.updateExample
         exampleId
-        (updateExample flippedControlls action)
+        (updateExample config action)
         model
 
 
-toHtml : Bool -> TutorialModel -> Html Msg
-toHtml flippedControlls model =
-    Literate.toHtml renderConfig flippedControlls model
+toHtml : Config -> TutorialModel -> Html Msg
+toHtml config model =
+    Literate.toHtml renderConfig config model
 
 
 puzzleInline : ExampleHeight -> String -> Segment config Example msg

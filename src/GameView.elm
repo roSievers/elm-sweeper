@@ -16,14 +16,14 @@ import Cell exposing (Cell(..))
 import Counting exposing (..)
 
 
-gameView : Bool -> GameModel -> Html Msg
-gameView flippedControlls model =
+gameView : Config -> GameModel -> Html Msg
+gameView config model =
     div []
         [ flexibleMainContent
             (viewLevel "levelView" "" model.level.content
               |> Html.App.map GameMsg)
             (comment model.level.comments)
-            (sidebar flippedControlls model)
+            (sidebar config model)
         , attribution model.level
         ]
 
@@ -39,12 +39,12 @@ flexibleMainContent mainContent footer sidebar =
         ]
 
 
-sidebar : Bool -> GameModel -> Html Msg
-sidebar flippedControlls model =
+sidebar : Config -> GameModel -> Html Msg
+sidebar config model =
     Html.div []
         [ stats model
         , Html.br [] []
-        , intentDisplay flippedControlls
+        , intentDisplay config.flippedControlls
         , Html.br [] []
         , Html.button [ Html.Events.onClick (SetRoute MainMenu) ] [ Html.text "Main Menu" ]
         ]

@@ -4,7 +4,7 @@ import Dict
 import Grid exposing (Grid, Direction(..))
 import Types exposing (..)
 import Cell exposing (Cell, empty, count, typedCount, mine, flower, rowCount, typedRowCount)
-
+import HexcellParser
 
 level1 =
   { title = "Feature testing level"
@@ -39,3 +39,21 @@ grid1 =
         , ( ( 2, 1 ), typedRowCount DownRight )
         , ( ( 1, 2 ), rowCount Down )
         ]
+
+
+
+level1String = """Hexcells level v1
+Feature testing level
+Rolf Sievers
+
+
+....|n......
+..\\n........
+|+..x.......
+..x...o.....
+o...o...oc..
+..on..x...x+
+o+..x+..x...
+..o+..o+....
+o+..o...o...
+......x....."""

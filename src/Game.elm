@@ -22,11 +22,11 @@ gameGrid =
     Lens (.content) (\newGrid model -> {model | content = newGrid})
 
 
-updateGame : Bool -> GameAction -> GameModel -> GameModel
-updateGame flippedControlls action model =
+updateGame : Config -> GameAction -> GameModel -> GameModel
+updateGame config action model =
     case action of
       Reveal button coordinate ->
-          handleReveal flippedControlls button coordinate model
+          handleReveal config.flippedControlls button coordinate model
 
       ToggleOverlay coordinate overlay ->
           model
