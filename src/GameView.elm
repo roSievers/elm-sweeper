@@ -35,7 +35,7 @@ flexibleMainContent mainContent footer sidebar =
         [ div [ Html.Attributes.id "flexbox-sidebar" ] [ sidebar ]
         , div [ Html.Attributes.id "flexbox-main" ]
             [ div [ Html.Attributes.id "flexbox-grid" ] [ mainContent ]
-            , div [ Html.Attributes.id "flexbox-footer" ] [ footer ]
+            , footer
             ]
         ]
 
@@ -96,9 +96,6 @@ attribution level =
         ]
 
 
-{-| TODO: This should somehow shrink if only one line of text is present.
-Then `viewBox "-100 0 200 40"` and a #flexbox-footer.height of 100px is good.
--}
 comment : List String -> Html msg
 comment comments =
     let
@@ -109,13 +106,28 @@ comment comments =
                 ]
                 [ Svg.text caption ]
     in
-        Svg.svg
-            [ Html.Attributes.id "comments"
-            , width "100%"
-            , height "100%"
-            , viewBox "-100 0 200 70"
-            ]
-            (List.indexedMap textNode comments)
+        if List.length comments == 0 then
+            div [ Html.Attributes.id "flexbox-footer", Html.Attributes.class "footer-none" ] []
+        else if List.length comments == 1 then
+            div [ Html.Attributes.id "flexbox-footer", Html.Attributes.class "footer-small" ]
+                [ Svg.svg
+                    [ Html.Attributes.id "comments"
+                    , width "100%"
+                    , height "100%"
+                    , viewBox "-100 5 100 35"
+                    ]
+                    (List.indexedMap textNode comments)
+                ]
+        else
+            div [ Html.Attributes.id "flexbox-footer", Html.Attributes.class "footer-large" ]
+                [ Svg.svg
+                    [ Html.Attributes.id "comments"
+                    , width "100%"
+                    , height "100%"
+                    , viewBox "-100 0 200 70"
+                    ]
+                    (List.indexedMap textNode comments)
+                ]
 
 
 viewLevel : String -> String -> Grid Cell -> Html.Html GameAction
