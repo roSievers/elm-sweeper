@@ -66,7 +66,7 @@ init =
     Return.singleton
         { route = Tutorial
         , currentGame = initExampleGame
-        , tutorial = Tutorial.init
+        , tutorial = Tutorial.tutorial
         , pasteBox = ""
         , flippedControlls = True
         }
@@ -134,7 +134,7 @@ view model =
             mainMenuView model
 
         Tutorial ->
-            tutorial model.flippedControlls model.tutorial
+            Tutorial.toHtml model.flippedControlls model.tutorial
 
 
 mainMenuView : Model -> Html Msg

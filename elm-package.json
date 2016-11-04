@@ -4,7 +4,8 @@
     "repository": "https://github.com/roSievers/elm-sweeper.git",
     "license": "BSD3",
     "source-directories": [
-        "src"
+        "src",
+        "src/libraries"
     ],
     "exposed-modules": [],
     "dependencies": {

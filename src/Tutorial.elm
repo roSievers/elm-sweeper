@@ -1,11 +1,17 @@
 module Tutorial exposing (..)
 
+{-| This tutorial is designed to introduce new players to the concepts found
+in the game. It contains playable examples to teach mechanics.
+
+@docs tutorial
+
+-}
+
 import Html exposing (Html, div, text, p, a)
 import Html.App
 import Html.Events exposing (onClick)
 import Html.Attributes
 import Types exposing (..)
-import Markdown
 import HexcellParser
 import GameView
 import Grid exposing (Grid)
@@ -14,23 +20,89 @@ import Game
 import Dict exposing (Dict)
 import Monocle.Optional as Optional exposing (Optional)
 import Monocle.Common exposing ((=>))
+import Literate exposing (LiteratePuzzle, Segment(..), RenderConfig)
 
 
 type alias TutorialModel =
-    { ex1 : Example
-    , ex2 : Example
-    }
+    LiteratePuzzle Bool Example Msg
+
+{-| The tutorial, written using the Literate library. -}
+tutorial : TutorialModel
+tutorial =
+    [ StaticMarkdown """
+# How to play Elm Sweeper
+
+Below the orange hexes hides a pattern of mines.
+Hexes without mines hold clues to help you figure out where the mines are hidden:
+The number tells you how many of the adjacent hexes contain mines.
+"""
+    , DynamicMarkdown
+        (\config ->
+            "If you have figured out that a hex is empty you can **reveal it using your "
+                ++ revealButton config
+                ++ " mouse button**. If you know the position of a mine, **mark it with your "
+                ++ mineButton config
+                ++ "** mouse button."
+        )
+    , StaticHtml
+        (p []
+            [ text "You can also "
+            , a [ onClick FlipControlls ] [ text "exchange the buttons" ]
+            , text " if you prefer it the other way round."
+            ]
+        )
+    , puzzleInline Small """
+..o+..x.........O+
+O+..o+..O+....x...x.
+......x...o+....x.
+"""
+    , StaticMarkdown """
+Not all patterns are quite as easy to uncover. Can you figure out how to solve these two puzzles?
+Try not to guess!"""
+    , puzzleInline Small """
+..............X.
+..o+........o+..o+
+O+..O+....O+..O+..O+
+..x...o+....x...x.
+x...o+....x...o+..x.
+"""
+    , StaticMarkdown """
+If this is your first time playing a puzzle like this here are a few easy levels
+to get you started. Skip ahead if you feel comfortable already.
+
+Do work to embed several levels in here."""
+    , StaticHtml
+        (Html.button [ Html.Events.onClick (SetRoute MainMenu) ]
+            [ Html.text "Main Menu" ]
+        )
+    ]
+        |> Literate.literate
 
 
-type alias Example =
-    { height : ExampleHeight
-    , grid : WithError (Grid Cell)
-    , id : String
-    }
+revealButton flippedControlls =
+    if not flippedControlls then
+        "right"
+    else
+        "left"
 
 
-type alias WithError a =
-    Result (List String) a
+mineButton flippedControlls =
+    if not flippedControlls then
+        "left"
+    else
+        "right"
+
+
+
+-- This wires the LiteratePuzzle up for use with Elm Sweeper.
+
+
+type Example
+    = Plain
+        { height : ExampleHeight
+        , grid : Grid Cell
+        }
+    | LoadError String
 
 
 type ExampleHeight
@@ -39,153 +111,61 @@ type ExampleHeight
     | Large
 
 
-init : TutorialModel
-init =
-    { ex1 = exampleLevel1
-    , ex2 = exampleLevel2
+sizeClass height =
+    case height of
+        Small ->
+            "inline-small"
+
+        Medium ->
+            "inline-medium"
+
+        Large ->
+            "inline-large"
+
+
+renderExample : config -> Example -> Html GameAction
+renderExample _ example =
+    case example of
+        Plain data ->
+            GameView.viewLevel "" ("inline-grid " ++ sizeClass data.height) data.grid
+
+        LoadError errorMessage ->
+            p []
+                [ text "An error occured: "
+                , text errorMessage
+                ]
+
+
+tagExampleMsg : Int -> GameAction -> Msg
+tagExampleMsg id exampleMsg =
+    TutorialMsg id exampleMsg
+
+
+renderConfig : RenderConfig Bool Example GameAction Msg
+renderConfig =
+    { renderExample = renderExample
+    , tagExampleMsg = tagExampleMsg
     }
 
 
-tutorial : Bool -> TutorialModel -> Html Msg
-tutorial flippedControlls model =
-    div [ Html.Attributes.id "outer-text-container" ]
-        [ div [ Html.Attributes.id "inner-text-container" ]
-            [ greeting
-            , buttons flippedControlls
-            , changeButtons
-            , inlineExample model.ex1
-            , firstDeduction
-            , inlineExample model.ex2
-            , firstSetOfLevels
-            , Html.button [ Html.Events.onClick (SetRoute MainMenu) ] [ Html.text "Main Menu" ]
-            ]
-        ]
+updateExample : Bool -> GameAction -> Example -> Example
+updateExample flippedControlls action example =
+    case example of
+        Plain data ->
+            Plain
+                (Optional.modify (grid => asGameModel)
+                    (Game.updateGame flippedControlls action)
+                    data
+                )
+
+        (LoadError _) as error ->
+            error
 
 
-greeting : Html msg
-greeting =
-    Markdown.toHtml [] """
-
-# How to play Elm Sweeper
-
-Below the orange hexes hides a pattern of mines.
-Hexes without mines hold clues to help you figure out where the mines are hidden:
-The number tells you how many of the adjacent hexes contain mines.
-"""
-
-
-buttons : Bool -> Html Msg
-buttons flippedControlls =
-    let
-        revealButton =
-            if flippedControlls then
-                "left mouse button"
-            else
-                "right mouse button"
-
-        mineButton =
-            if not flippedControlls then
-                "left mouse button"
-            else
-                "right mouse button"
-    in
-        Markdown.toHtml []
-            ("If you have figured out that a hex is empty you can **reveal it using your "
-                ++ revealButton
-                ++ "**. If you know the position of a mine, **mark it with your "
-                ++ mineButton
-                ++ "**."
-            )
-
-
-changeButtons : Html Msg
-changeButtons =
-    p []
-        [ text "You can also "
-        , a [ onClick FlipControlls ] [ text "exchange the buttons" ]
-        , text " if you prefer it the other way round."
-        ]
-
-
-exampleLevel1 : Example
-exampleLevel1 =
-    { height = Small
-    , grid = HexcellParser.parseCellGrid """
-..o+..x.........O+
-O+..o+..O+....x...x.
-......x...o+....x.
-"""
-    , id = "example-1"
-    }
-
-
-firstDeduction : Html Msg
-firstDeduction =
-    Markdown.toHtml [] """
-Not all patterns are quite as easy to uncover. Can you figure out how to solve these two puzzles?
-Try not to guess!"""
-
-
-exampleLevel2 : Example
-exampleLevel2 =
-    { height = Small
-    , grid = HexcellParser.parseCellGrid """
-..............X.
-..o+........o+..o+
-O+..O+....O+..O+..O+
-..x...o+....x...x.
-x...o+....x...o+..x.
-"""
-    , id = "example-2"
-    }
-
-
-firstSetOfLevels : Html Msg
-firstSetOfLevels =
-    Markdown.toHtml [] """
-If this is your first time playing a puzzle like this here are a few easy levels
-to get you started. Skip ahead if you feel comfortable already.
-
-Do work to embed several levels in here."""
-
-
-
--- Helper functions
-
-
-inlineExample : Example -> Html Msg
-inlineExample example =
-    let
-        sizeClass =
-            case example.height of
-                Small ->
-                    "inline-small"
-
-                Medium ->
-                    "inline-medium"
-
-                Large ->
-                    "inline-large"
-
-        className =
-            "inline-grid " ++ sizeClass
-    in
-        case example.grid of
-            Ok grid ->
-                GameView.viewLevel "" className grid
-                    |> Html.App.map (TutorialMsg example.id)
-
-            Err error ->
-                p []
-                    [ text "An error occured: "
-                    , text (toString error)
-                    ]
-
-
-grid : Optional Example (Grid Cell)
+grid : Optional { a | grid : Grid Cell } (Grid Cell)
 grid =
-    { getOption = \example -> Result.toMaybe example.grid
-    , set = \grid example -> { example | grid = Ok grid }
+    { getOption = \example -> Just example.grid
+    , set = \grid example -> { example | grid = grid }
     }
 
 
@@ -208,24 +188,29 @@ asGameModel =
     }
 
 
-updateTutorial : Bool -> String -> GameAction -> TutorialModel -> TutorialModel
+updateTutorial : Bool -> Int -> GameAction -> TutorialModel -> TutorialModel
 updateTutorial flippedControlls exampleId action model =
-    case Debug.log "" exampleId of
-        "example-1" ->
-            { model
-                | ex1 =
-                    model.ex1
-                        |> Optional.modify (grid => asGameModel)
-                            (Game.updateGame flippedControlls action)
-            }
+    Literate.updateExample
+        exampleId
+        (updateExample flippedControlls action)
+        model
 
-        "example-2" ->
-            { model
-                | ex2 =
-                    model.ex2
-                        |> Optional.modify (grid => asGameModel)
-                            (Game.updateGame flippedControlls action)
-            }
 
-        _ ->
-            model
+toHtml : Bool -> TutorialModel -> Html Msg
+toHtml flippedControlls model =
+    Literate.toHtml renderConfig flippedControlls model
+
+
+puzzleInline : ExampleHeight -> String -> Segment config Example msg
+puzzleInline height data =
+    case HexcellParser.parseCellGrid data of
+        Ok grid ->
+            Plain
+                { height = height
+                , grid = grid
+                }
+                |> InlineExample
+
+        Err errorMessages ->
+            LoadError (toString errorMessages)
+                |> InlineExample

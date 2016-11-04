@@ -37,7 +37,7 @@ type Route
 
 type Msg
     = GameMsg GameAction
-    | TutorialMsg String GameAction
+    | TutorialMsg Int GameAction
     | FlipControlls
     | SetRoute Route
     | PasteBoxEdit String
