@@ -26,10 +26,16 @@ import Literate exposing (LiteratePuzzle, Segment(..), RenderConfig)
 type alias TutorialModel =
     LiteratePuzzle Bool Example Msg
 
-{-| The tutorial, written using the Literate library. -}
+
+{-| The tutorial, written using the Literate library.
+-}
 tutorial : TutorialModel
 tutorial =
-    [ StaticMarkdown """
+    [ StaticHtml
+        (Html.button [ Html.Events.onClick (SetRoute MainMenu) ]
+            [ Html.text "Main Menu" ]
+        )
+    , StaticMarkdown """
 # How to play Elm Sweeper
 
 Below the orange hexes hides a pattern of mines.
@@ -51,6 +57,9 @@ The number tells you how many of the adjacent hexes contain mines.
             , text " if you prefer it the other way round."
             ]
         )
+    , StaticMarkdown """
+**Todo:** Implement a tablet mode, explain it here and put a *swich on tablet mode* button.
+"""
     , puzzleInline Small """
 ..o+..x.........O+
 O+..o+..O+....x...x.
@@ -58,23 +67,53 @@ O+..o+..O+....x...x.
 """
     , StaticMarkdown """
 Not all patterns are quite as easy to uncover. Can you figure out how to solve these two puzzles?
-Try not to guess!"""
+Try not to guess! I promise that it is possible."""
     , puzzleInline Small """
-..............X.
-..o+........o+..o+
-O+..O+....O+..O+..O+
-..x...o+....x...x.
-x...o+....x...o+..x.
+..o+............O+....
+O+..O+........x...x...
+..x...o+........o+..O+
+x...o+........O+..o+..
 """
     , StaticMarkdown """
 If this is your first time playing a puzzle like this here are a few easy levels
 to get you started. Skip ahead if you feel comfortable already.
 
-Do work to embed several levels in here."""
-    , StaticHtml
-        (Html.button [ Html.Events.onClick (SetRoute MainMenu) ]
-            [ Html.text "Main Menu" ]
-        )
+**TODO:** Embed several levels in here. With some GUI (Mistakes, Mines left)
+This might also be a good place to introduce the total count as a mechanic."""
+    , puzzleInline Small """
+....X.
+..o+..o+
+O+..O+..O+
+..x...x.
+x...o+..x.
+"""
+    , StaticMarkdown """
+# Connected and Disconnected Neighborhoods
+
+Some hints reveal additional information. When they are surrounded by curly
+braces, like `{3}`, it means the adjacent cells are all connected.
+Dashes as in `-3-` indicate that the adjacent cells form two or more groups.
+Here are some examples:
+
+"""
+    , puzzleInline Small """
+..Oc......On....X.....
+X...X...X...X.....On..
+..X.......O+....X...X.
+......................
+"""
+    , StaticMarkdown """
+To get some practice with these “typed hints” here are some more levels:
+
+**TODO:** Embed several levels in here. With some GUI (Mistakes, Mines left)
+"""
+    , StaticMarkdown """
+# Mines on lines
+
+The next type of hint to learn about are vertical and diagonal sums. These are
+sometimes typed as well, but work subtly different.
+
+"""
     ]
         |> Literate.literate
 
@@ -95,6 +134,7 @@ mineButton flippedControlls =
 
 
 -- This wires the LiteratePuzzle up for use with Elm Sweeper.
+-- Might go into a SweeperLiterate.elm file when there are several literate files.
 
 
 type Example

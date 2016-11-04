@@ -166,12 +166,12 @@ text {
 }
 
 #inner-text-container {
-    max-width: 800px;
+    max-width: 50em;
     border: thin solid lightgray;
-    padding: 30px;
+    padding: 2em;
     padding-top: 0px;
-    margin-top: 30px;
-    margin-bottom: 30px;
+    margin-top: 2em;
+    margin-bottom: 2em;
 }
 
 a {
@@ -184,13 +184,13 @@ a {
 }
 
 .inline-small {
-    height: 200px;
+    height: 12.5em;
 }
 
 .inline-medium {
-    height: 400px;
+    height: 25em;
 }
 
 .inline-large {
-    height: 600px;
+    height: 37.5em;
 }
