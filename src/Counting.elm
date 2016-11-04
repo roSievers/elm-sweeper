@@ -82,10 +82,13 @@ typeInDirection bounds grid basePoint direction =
                         Just accumulator
 
                     Just cell ->
-                        if Cell.isMine cell then
-                            Just (True :: accumulator)
+                        if Cell.isGameElement cell then
+                            if Cell.isMine cell then
+                                Just (True :: accumulator)
+                            else
+                                Just (False :: accumulator)
                         else
-                            Just (False :: accumulator)
+                            Just accumulator
             else
                 Nothing
         )

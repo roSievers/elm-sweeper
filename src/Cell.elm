@@ -87,6 +87,16 @@ isHiddenMine cell =
     isMine cell && isHidden cell
 
 
+isGameElement : Cell -> Bool
+isGameElement cell =
+    case cell of
+        RowCount _ ->
+            False
+
+        _ ->
+            True
+
+
 
 -- Modification functions
 
