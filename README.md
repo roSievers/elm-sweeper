@@ -12,7 +12,11 @@ One core thing I am aiming for is directly linking levels from other websites (e
 
 ## Screenshots
 
-Early development version, loading and playing levels works, but there is no propper menu flow yet. (28.10.16)
+Fullscreen mode in Firefox. (04.11.16)
+
+![Imgur](http://i.imgur.com/3UqoBVr.png)
+
+Earlier development version, loading and playing levels works, but there is no propper menu flow yet. (28.10.16)
 
 ![Screenshot on Imgur](http://i.imgur.com/ARPdQRX.png)
 
