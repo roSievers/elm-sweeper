@@ -21,7 +21,8 @@ gameView config model =
     div []
         [ flexibleMainContent
             (viewLevel "levelView" "" model.level.content
-              |> Html.App.map GameMsg)
+                |> Html.App.map GameMsg
+            )
             (comment model.level.comments)
             (sidebar config model)
         , attribution model.level
@@ -33,24 +34,25 @@ flexibleMainContent mainContent footer sidebar =
     div [ Html.Attributes.id "flexbox-wrapper" ]
         [ div [ Html.Attributes.id "flexbox-sidebar" ] [ sidebar ]
         , div [ Html.Attributes.id "flexbox-main" ]
-          [ div [Html.Attributes.id "flexbox-grid"] [ mainContent ]
-          , div [Html.Attributes.id "flexbox-footer"] [ footer ]
-          ]
+            [ div [ Html.Attributes.id "flexbox-grid" ] [ mainContent ]
+            , div [ Html.Attributes.id "flexbox-footer" ] [ footer ]
+            ]
         ]
 
 
 sidebar : Config -> GameModel -> Html Msg
 sidebar config model =
-    Html.div []
-        [ stats model
-        , Html.br [] []
-        , intentDisplay config.flippedControlls
-        , Html.br [] []
-        , Html.button [ Html.Events.onClick (SetRoute MainMenu) ] [ Html.text "Main Menu" ]
-        ]
+    [ Just (stats model)
+    , if config.tabletMode then
+        Just (intentDisplay config.flippedControlls)
+      else
+        Nothing
+    ]
+        |> List.filterMap identity
+        |> Html.div []
 
 
-stats : GameModel -> Html msg
+stats : GameModel -> Html Msg
 stats model =
     let
         minesLeft =
@@ -72,23 +74,16 @@ stats model =
             else
                 toString model.mistakes ++ " mistakes"
     in
-        Svg.svg
-            [ Html.Attributes.id "errorCounter"
-            , width "100%"
-            , viewBox "-100 0 200 120"
-            ]
-            [ Svg.rect [ x "-95", y "10", width "190", height "45", style "fill:blue" ] []
-            , Svg.rect [ x "-95", y "60", width "190", height "45", style "fill:blue" ] []
-            , Svg.text'
-                [ Svg.Attributes.style "text-anchor:middle;fill:lightgray;font-weight:bold;"
-                , atCoordinate { x = 0, y = 45 }
+        Html.div []
+            [ Html.div [ Html.Attributes.class "flat-label" ]
+                [ Html.text mineText ]
+            , Html.div [ Html.Attributes.class "flat-label" ]
+                [ Html.text mistakeText ]
+            , Html.div
+                [ Html.Attributes.class "flat-button"
+                , Html.Events.onClick (SetRoute MainMenu)
                 ]
-                [ Svg.text mineText ]
-            , Svg.text'
-                [ Svg.Attributes.style "text-anchor:middle;fill:lightgray;font-weight:bold;"
-                , atCoordinate { x = 0, y = 100 }
-                ]
-                [ Svg.text mistakeText ]
+                [ Html.text "Menu" ]
             ]
 
 
@@ -100,17 +95,19 @@ attribution level =
         , Html.text <| "by " ++ level.author
         ]
 
+
 {-| TODO: This should somehow shrink if only one line of text is present.
-Then `viewBox "-100 0 200 40"` and a #flexbox-footer.height of 100px is good. -}
+Then `viewBox "-100 0 200 40"` and a #flexbox-footer.height of 100px is good.
+-}
 comment : List String -> Html msg
 comment comments =
     let
         textNode index caption =
-          Svg.text'
-              [ Svg.Attributes.style "text-anchor:middle;fill:lightgray;font-weight:bold;"
-              , atCoordinate { x = 0, y = 30 + index * 30 }
-              ]
-              [ Svg.text caption ]
+            Svg.text'
+                [ Svg.Attributes.style "text-anchor:middle;fill:lightgray;font-weight:bold;"
+                , atCoordinate { x = 0, y = 30 + index * 30 }
+                ]
+                [ Svg.text caption ]
     in
         Svg.svg
             [ Html.Attributes.id "comments"
@@ -132,7 +129,11 @@ viewLevel idAttribute className grid =
         svg
             [ Html.Attributes.id idAttribute
             , Svg.Attributes.class className
-            , width "100", height "80", visibleArea, preserveAspectRatio "xMidYMid meet" ]
+            , width "100"
+            , height "80"
+            , visibleArea
+            , preserveAspectRatio "xMidYMid meet"
+            ]
             [ Grid.view cellSvgInteractive grid
             ]
 
@@ -472,12 +473,13 @@ bottomCaption caption =
 
 atCoordinate : Coordinate -> Svg.Attribute msg
 atCoordinate coordinate =
-    [ "translate("
-    , toString (1.5 * toFloat coordinate.x)
-    , ","
-    , toString (0.866 * toFloat coordinate.y)
-    , ")"
-    ]
+    translate
+        ( 1.5 * toFloat coordinate.x, 0.866 * toFloat coordinate.y )
+
+
+translate : ( Float, Float ) -> Svg.Attribute msg
+translate ( x, y ) =
+    [ "translate(", toString x, ",", toString y, ")" ]
         |> String.join ""
         |> transform
 

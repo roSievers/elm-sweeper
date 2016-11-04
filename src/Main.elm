@@ -66,6 +66,11 @@ flippedControlls =
     Lens (.flippedControlls) (\newState config -> { config | flippedControlls = newState })
 
 
+tabletMode : Lens Config Bool
+tabletMode =
+    Lens (.tabletMode) (\newState config -> { config | tabletMode = newState })
+
+
 init : Return msg Model
 init =
     Return.singleton
@@ -75,7 +80,7 @@ init =
         , pasteBox = ""
         , config =
             { flippedControlls = True
-            , tabletMode = True
+            , tabletMode = False
             }
         }
 
@@ -107,6 +112,11 @@ update action model =
         FlipControlls ->
             model
                 |> Lens.modify (config >>> flippedControlls) not
+                |> Return.singleton
+
+        FlipTabletMode ->
+            model
+                |> Lens.modify (config >>> tabletMode) not
                 |> Return.singleton
 
         SetRoute route ->
@@ -153,6 +163,7 @@ mainMenuView model =
         [ text "Fancy Main Menu!"
         , button [ onClick (SetRoute Tutorial) ] [ text "Tutorial" ]
         , button [ onClick (SetRoute InGame) ] [ text "CurrentGame" ]
+        , button [ onClick FlipTabletMode ] [ text "Swich Tablet Mode" ]
         , br [] []
         , textarea
             [ placeholder "Paste a Hexcells level file!"

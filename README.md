@@ -32,6 +32,7 @@ from the project root, then open [index.html](http://localhost:8000/index.html) 
 
 ### Elm Sweeper has
 
+  - A “literate” mode mixing tutorial text and playable levels.
   - Arbitrary level size
   - Ability to fade out all numbers, not only flowers and rows. (Which is really the reason this whole project got started.)
 
@@ -39,11 +40,16 @@ from the project root, then open [index.html](http://localhost:8000/index.html) 
 
 Just a dump of ideas for this floating around my head.
 
-- A collection of user levels
+- A collection of user levels.
+- More literate collections by other users.
 - Create a link which opens a certain level automatically.
   - .../#decode=FancyUrlEncoding
   - .../#source=https://github.com/rosievers/hexcelllevels/raw/master/l1
   - Maybe even .../#reddit=4y2l34/level_broken_spaceship_mediumhard
   this would link back to the reddit discussion thread from inside Elm Sweeper.
-- An integrated level editor. There is already [SixCells](https://github.com/blaxpirit/sixcells) but you have to download it.
+- An integrated level editor. There is already [SixCells](https://github.com/blaxpirit/sixcells) but you have to download it. But SixCells it great, go use it!
 - More random map generators.
+  - It could generate nice looking levels by starting from a shape template.
+  - Maybe features can be enabled/disabled.
+  - Same for solving strategies, this would yield different difficulities.
+- Tablet support

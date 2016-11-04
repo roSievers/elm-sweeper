@@ -42,6 +42,7 @@ type Msg
     = GameMsg GameAction
     | TutorialMsg Int GameAction
     | FlipControlls
+    | FlipTabletMode
     | SetRoute Route
     | PasteBoxEdit String
     | NewLevel Level
