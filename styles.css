@@ -4,6 +4,29 @@ html, head, body {
 }
 
 
+/* Main Menu */
+
+.flex-container {
+    display: flex;
+    /* or inline-flex */
+    box-orient: horizontal;
+}
+
+.flex-block {
+    display: block;
+    /* or inline-flex */
+    width: 33%;
+}
+
+#paste-box {
+    width: 100%;
+    height: 30em;
+}
+
+
+/* Fullscreen game mode */
+
+
 /* http://stackoverflow.com/questions/14319097/css-auto-resize-div-to-fit-container-width */
 
 #flexbox-wrapper {

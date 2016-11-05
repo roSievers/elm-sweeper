@@ -1,9 +1,9 @@
 module Main exposing (..)
 
-import Html exposing (Html, div, text, button, br, textarea)
+import Html exposing (Html, div, text, button, br, textarea, h1, p, a)
 import Html.App
 import Html.Events exposing (onClick, onInput)
-import Html.Attributes exposing (placeholder, value)
+import Html.Attributes exposing (placeholder, value, href)
 import Return exposing (Return)
 import Dict exposing (Dict)
 import Grid exposing (Grid, Direction(..), Coordinate)
@@ -17,6 +17,7 @@ import Monocle.Lens as Lens exposing (Lens)
 import Monocle.Optional as Optional
 import Monocle.Common exposing ((=>))
 import HexcellParser
+import Components
 
 
 (>>>) : Lens a b -> Lens b c -> Lens a c
@@ -74,7 +75,7 @@ tabletMode =
 init : Return msg Model
 init =
     Return.singleton
-        { route = Tutorial
+        { route = MainMenu
         , currentGame = initExampleGame
         , tutorial = Tutorial.tutorial
         , pasteBox = ""
@@ -159,19 +160,36 @@ view model =
 
 mainMenuView : Model -> Html Msg
 mainMenuView model =
-    div []
-        [ text "Fancy Main Menu!"
-        , button [ onClick (SetRoute Tutorial) ] [ text "Tutorial" ]
-        , button [ onClick (SetRoute InGame) ] [ text "CurrentGame" ]
-        , button [ onClick FlipTabletMode ] [ text "Swich Tablet Mode" ]
-        , br [] []
+    Components.paperWrapper
+        [ h1 [] [ text "Elm Sweeper" ]
+        , p []
+            [ text "Elm Sweeper aims to reimplement the puzzle mechanicsof "
+            , a [ href "http://store.steampowered.com/app/265890/" ] [ text "Hexcells" ]
+            , text " as a web application. Hexcells is a supercharged Minesweeper with hand crafted levels."
+            ]
+        , div [ Html.Attributes.class "flex-container" ]
+            [ div [ Html.Attributes.class "flex-block" ]
+                [ Components.flatButton (SetRoute Tutorial) "Tutorial"
+                ]
+            , div [ Html.Attributes.class "flex-block" ]
+                [ Components.flatButton (SetRoute InGame) "Current Game"
+                ]
+            , div [ Html.Attributes.class "flex-block" ]
+                [ Components.flatButton FlipTabletMode "Swich Tablet Mode"
+                ]
+            ]
+        , p []
+            [ text "Community made levels are collected on "
+            , a [ href "https://www.reddit.com/r/hexcellslevels/" ] [ text "/r/hexcellslevels" ]
+            , text "."
+            ]
         , textarea
             [ placeholder "Paste a Hexcells level file!"
             , onInput PasteBoxEdit
             , value model.pasteBox
+            , Html.Attributes.id "paste-box"
             ]
             []
-        , br [] []
         , parsedResultView (HexcellParser.parseLevel model.pasteBox)
         ]
 
@@ -180,7 +198,11 @@ parsedResultView : Result (List String) Level -> Html Msg
 parsedResultView parseResult =
     case parseResult of
         Err errorMessage ->
-            text ("Parsing Error: " ++ toString errorMessage)
+            p []
+                [ text "This doesn't look like a valid Hexcells level. Maybe the error message helps?"
+                , br [] []
+                , text (toString errorMessage)
+                ]
 
         Ok level ->
             div []
@@ -189,5 +211,5 @@ parsedResultView parseResult =
                 , text <| "Title: " ++ level.title
                 , GameView.previewLevel "levelPreview" level.content
                 , br [] []
-                , button [ onClick (NewLevel level) ] [ text "Load Level" ]
+                , Components.flatButton (NewLevel level) "Load Level"
                 ]
