@@ -38,7 +38,12 @@ tutorial =
     , StaticMarkdown """
 # How to play Elm Sweeper
 
-Below the orange hexes hides a pattern of mines.
+This tutorial intends to quickly introduce you to all game mechanics. After
+this you should be able to play all user made levels. If you prefer learning about
+mechanics one by one as they are gradually introduced, go play the original
+Hexcells first.
+
+In Elm Sweeper you are confronted with a hexagonal grid. Below some of the orange hexes hide mines.
 Hexes without mines hold clues to help you figure out where the mines are hidden:
 The number tells you how many of the adjacent hexes contain mines.
 """
@@ -149,22 +154,88 @@ x.......X...X.......o.
 ..........O+..On..
 ....o+..x...x...x.
 ..o+..on..o+..o+..
-x...Oc..O+..o+..O+
+x...Oc..O+..o...O+
 ..o+..x...........
 ....x.......o+..o+
 ..............o+.."""
     , StaticMarkdown """
 # Mines on lines
 
-The next type of hint to learn about are vertical and diagonal sums. These are
-sometimes typed as well, but work subtly different.
+The next hint to learn about are vertical and diagonal sums. These are located
+at the borders of the levels and indicate how many mines are on a certain line.
 
+These are sometimes typed as well, but connectedness works subtly different.
+While the center `-2-` cell in the example below is disconnected by an empty space,
+the `{3}` line on the right is connected.
+Empty space does not break connectedness **on lines**.
+
+When you click on a line hint it will display an overlay to help you figure out
+which cells are on the line. This is particularly useful for large levels.
 """
+    , puzzleInline Medium """
+\\+......\\n......\\c..........
+..O...|+..O+../+..O+........
+....X.......Oc......X.......
+......O+..X...X.............
+........X.......O.......X...
+......O...X.......X.......X."""
+    , StaticMarkdown """
+Pratice makes perfect, take these levels for a spin.
+"""
+    , puzzleInline Large """
+..|n......|c
+............
+..x...o...o+
+....x...o+..
+..o...x...x.
+\\+..o...o+..
+..x...on..x.
+\\+..o+..x...
+..x...o...x.
+....o+..x..."""
+    , puzzleInline Large """
+......|+......
+....|+........
+..|n..x...|c..
+\\+..o...o.....
+..x...x...o+..
+\\+..on..o.../n
+..o+..o...x...
+....o+..x.....
+..x...o...x...
+....x...x.....
+......x......."""
+    , puzzleInline Large """
+........|+..|c..|+..
+..|+..\\+............
+........o...o...x...
+..x...x...x...x.....
+\\+..o+..On..o+..x...
+..o...O+..x...o.....
+....o...o...x...|+..
+..|+..o.........../+
+\\+..............o...
+..o...\\+............
+........x...x...x...
+..x.................
+........x...o+......"""
     , StaticMarkdown """
 # Flowers (Hints on Mines)
 
+The last game element is the “flower”. These are mines which contain a hint.
+However, the number doesn't just count directly adjacent mines, but also an
+extra layer. Sounds complicated? Click on a flower to see where it counts mines.
+(Note that the flower itself does not count towards the total.)
 
 """
+    , puzzleInline Medium """
+..........o+..........
+....X...x...o+..x.....
+..o+......on......o+..
+X+..X...O+..X+..x...O+
+..o+......x.......oc..
+....X...o...o+..x+....
+..........o+.........."""
     ]
         |> Literate.literate
 
