@@ -113,7 +113,7 @@ To get some practice with these “typed hints” here are some more levels:
 **TODO:** These levels belong in one tabbed container with only one visible at a time.
 Puzzle nr. 4 (The mask puzzle) requires a visible remaining mines counter.
 """
-    , puzzleInline Medium """
+    , puzzleGroup Medium [ """
 ....o+....
 ..o+..oc..
 x...o+..x.
@@ -122,8 +122,7 @@ x.......x.
 ..o+..oc..
 On..on..x.
 ..x...x...
-....o+...."""
-    , puzzleInline Medium """
+....o+....""", """
 ....x.....
 ..o+..o+..
 o+..on..o+
@@ -132,14 +131,12 @@ x.......x.
 ..o+..on..
 On..oc..o+
 ..x...x...
-....x....."""
-    , puzzleInline Medium """
+....x.....""", """
 ....x.....
 ..o+..x...
 o+..Oc..O+
 ..o+..o+..
-....o+...."""
-    , puzzleInline Medium """
+....o+....""", """
 ....o+..........x.....
 ......o+......o+......
 ....o+..o+..o+..x.....
@@ -148,8 +145,7 @@ x.......X...X.......o.
 ..o+..x...o+..o+..o+..
 ....O+..Oc..O+..Oc....
 ......x.......x.......
-....o...........x....."""
-    , puzzleInline Medium """
+....o...........x.....""", """
 ............o+....
 ..........O+..On..
 ....o+..x...x...x.
@@ -157,7 +153,7 @@ x.......X...X.......o.
 x...Oc..O+..o...O+
 ..o+..x...........
 ....x.......o+..o+
-..............o+.."""
+..............o+..""" ]
     , StaticMarkdown """
 # Mines on lines
 
@@ -182,7 +178,7 @@ which cells are on the line. This is particularly useful for large levels.
     , StaticMarkdown """
 Pratice makes perfect, take these levels for a spin.
 """
-    , puzzleInline Large """
+    , puzzleGroup Large ["""
 ..|n......|c
 ............
 ..x...o...o+
@@ -192,8 +188,7 @@ Pratice makes perfect, take these levels for a spin.
 ..x...on..x.
 \\+..o+..x...
 ..x...o...x.
-....o+..x..."""
-    , puzzleInline Large """
+....o+..x...""", """
 ......|+......
 ....|+........
 ..|n..x...|c..
@@ -204,8 +199,7 @@ Pratice makes perfect, take these levels for a spin.
 ....o+..x.....
 ..x...o...x...
 ....x...x.....
-......x......."""
-    , puzzleInline Large """
+......x.......""", """
 ........|+..|c..|+..
 ..|+..\\+............
 ........o...o...x...
@@ -218,7 +212,7 @@ Pratice makes perfect, take these levels for a spin.
 ..o...\\+............
 ........x...x...x...
 ..x.................
-........x...o+......"""
+........x...o+......"""]
     , StaticMarkdown """
 # Flowers (Hints on Mines)
 
@@ -298,9 +292,9 @@ renderExample _ example =
                 ]
 
 
-tagExampleMsg : Int -> GameAction -> Msg
-tagExampleMsg id exampleMsg =
-    TutorialMsg id exampleMsg
+tagExampleMsg : Literate.Index -> GameAction -> Msg
+tagExampleMsg index exampleMsg =
+    TutorialMsg index exampleMsg
 
 
 renderConfig : RenderConfig Config Example GameAction Msg
@@ -350,10 +344,10 @@ asGameModel =
     }
 
 
-updateTutorial : Config -> Int -> GameAction -> TutorialModel -> TutorialModel
-updateTutorial config exampleId action model =
+updateTutorial : Config -> Literate.Index -> GameAction -> TutorialModel -> TutorialModel
+updateTutorial config index action model =
     Literate.updateExample
-        exampleId
+        index
         (updateExample config action)
         model
 
@@ -363,16 +357,25 @@ toHtml config model =
     Literate.toHtml renderConfig config model
 
 
-puzzleInline : ExampleHeight -> String -> Segment config Example msg
-puzzleInline height data =
+toExample : ExampleHeight -> String -> Example
+toExample height data =
     case HexcellParser.parseCellGrid data of
         Ok grid ->
             Plain
                 { height = height
                 , grid = grid
                 }
-                |> InlineExample
 
         Err errorMessages ->
             LoadError (toString errorMessages)
-                |> InlineExample
+
+
+puzzleInline : ExampleHeight -> String -> Segment config Example msg
+puzzleInline height data =
+    InlineExample (toExample height data)
+
+
+puzzleGroup : ExampleHeight -> List String -> Segment config Example msg
+puzzleGroup height levels =
+    List.map (toExample height) levels
+        |> TabbedExample

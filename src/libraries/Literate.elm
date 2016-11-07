@@ -2,6 +2,7 @@ module Literate
     exposing
         ( LiteratePuzzle
         , Segment(..)
+        , Index
         , literate
         , updateExample
         , RenderConfig
@@ -63,11 +64,39 @@ type alias LiteratePuzzle config example msg =
     List (ProcessedSegment config example msg)
 
 
+{-| The Index type is used to adress segments instead of a simple Int to allow
+nested segments.
+-}
+type Index
+    = Flat Int
+    | Nested Int Int
+
+
+flat : Index -> Int
+flat id =
+    case id of
+        Flat index ->
+            index
+
+        Nested index _ ->
+            index
+
+
+nested : Index -> Maybe Int
+nested id =
+    case id of
+        Flat _ ->
+            Nothing
+
+        Nested _ index ->
+            Just index
+
+
 {-| Specify how examples are rendered and messages are treated.
 -}
 type alias RenderConfig config example exampleMsg msg =
     { renderExample : config -> example -> Html exampleMsg
-    , tagExampleMsg : Int -> exampleMsg -> msg
+    , tagExampleMsg : Index -> exampleMsg -> msg
     }
 
 
@@ -80,12 +109,14 @@ type Segment config example msg
     | DynamicMarkdown (config -> String)
     | DynamicHtml (config -> Html msg)
     | InlineExample example
+    | TabbedExample (List example)
 
 
 type ProcessedSegment config example msg
     = Static (Html msg)
     | Dynamic (config -> Html msg)
     | Interactive example
+    | Tabbed (List example) Int
 
 
 processSegment : Segment config example msg -> ProcessedSegment config example msg
@@ -106,6 +137,9 @@ processSegment segment =
         InlineExample example ->
             Interactive example
 
+        TabbedExample examples ->
+            Tabbed examples 0
+
 
 {-| Turn a list of segments into a LiteratePuzzle. This converts all static markdown to Html.
 -}
@@ -118,7 +152,7 @@ literate =
 Do nothing if there is no example at the specified position.
 -}
 updateExample :
-    Int
+    Index
     -> (example -> example)
     -> LiteratePuzzle config example msg
     -> LiteratePuzzle config example msg
@@ -129,10 +163,18 @@ updateExample index updateFunction puzzle =
                 Interactive example ->
                     Interactive (updateFunction example)
 
+                Tabbed examples current ->
+                    (nested index)
+                        |> Maybe.map
+                            (\i -> List.updateAt i updateFunction examples)
+                        |> Maybe.withDefault (Just examples)
+                        |> Maybe.withDefault examples
+                        |> flip Tabbed current
+
                 anythingElse ->
                     anythingElse
     in
-        List.updateAt index internalUpdateFunction puzzle
+        List.updateAt (flat index) internalUpdateFunction puzzle
             |> Maybe.withDefault puzzle
 
 
@@ -169,4 +211,13 @@ segmentToHtml render config index segment =
 
         Interactive example ->
             render.renderExample config example
-                |> Html.App.map (render.tagExampleMsg index)
+                |> Html.App.map (render.tagExampleMsg (Flat index))
+
+        Tabbed examples _ ->
+            div []
+                (List.indexedMap (nestedExampleToHtml render config index) examples)
+
+
+nestedExampleToHtml render config index1 index2 example =
+    render.renderExample config example
+        |> Html.App.map (render.tagExampleMsg (Nested index1 index2))

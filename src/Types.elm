@@ -4,6 +4,7 @@ module Types exposing (..)
 
 import Grid exposing (Grid, Direction, Coordinate)
 import Cell exposing (Cell)
+import Literate
 
 
 type alias Level =
@@ -40,7 +41,7 @@ type alias Config =
 
 type Msg
     = GameMsg GameAction
-    | TutorialMsg Int GameAction
+    | TutorialMsg Literate.Index GameAction
     | FlipControlls
     | FlipTabletMode
     | SetRoute Route
