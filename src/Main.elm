@@ -106,9 +106,9 @@ update action model =
                     (Game.updateGame model.config gameAction)
                 |> Return.singleton
 
-        TutorialMsg exampleId action ->
+        TutorialMsg literateMsg ->
             Return.singleton
-                { model | tutorial = Tutorial.updateTutorial model.config exampleId action model.tutorial }
+                { model | tutorial = Tutorial.updateTutorial model.config literateMsg model.tutorial }
 
         FlipControlls ->
             model

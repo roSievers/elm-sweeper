@@ -18,9 +18,12 @@ import Grid exposing (Grid)
 import Cell exposing (Cell)
 import Game
 import Dict exposing (Dict)
-import Monocle.Optional as Optional exposing (Optional)
-import Monocle.Common exposing ((=>))
+import Monocle.Lens as Lens exposing(Lens)
 import Literate exposing (LiteratePuzzle, Segment(..), RenderConfig)
+
+
+(>>>) : Lens a b -> Lens b c -> Lens a c
+(>>>) = Lens.compose
 
 
 type alias TutorialModel =
@@ -178,7 +181,7 @@ which cells are on the line. This is particularly useful for large levels.
     , StaticMarkdown """
 Pratice makes perfect, take these levels for a spin.
 """
-    , puzzleGroup Large ["""
+    , puzzleGroup Large [ """
 ..|n......|c
 ............
 ..x...o...o+
@@ -212,7 +215,7 @@ Pratice makes perfect, take these levels for a spin.
 ..o...\\+............
 ........x...x...x...
 ..x.................
-........x...o+......"""]
+........x...o+......""" ]
     , StaticMarkdown """
 # Flowers (Hints on Mines)
 
@@ -292,15 +295,25 @@ renderExample _ example =
                 ]
 
 
-tagExampleMsg : Literate.Index -> GameAction -> Msg
-tagExampleMsg index exampleMsg =
-    TutorialMsg index exampleMsg
+
+renderPreview : Config -> Example -> Html msg
+renderPreview _ example =
+    case example of
+        Plain data ->
+            GameView.previewLevel "" data.grid
+
+        LoadError errorMessage ->
+            p []
+                [ text "An error occured: "
+                , text errorMessage
+                ]
 
 
 renderConfig : RenderConfig Config Example GameAction Msg
 renderConfig =
-    { renderExample = renderExample
-    , tagExampleMsg = tagExampleMsg
+    { example = renderExample
+    , preview = renderPreview
+    , tagMsg = TutorialMsg
     }
 
 
@@ -309,7 +322,7 @@ updateExample config action example =
     case example of
         Plain data ->
             Plain
-                (Optional.modify (grid => asGameModel)
+                (Lens.modify (grid >>> asGameModel)
                     (Game.updateGame config action)
                     data
                 )
@@ -318,37 +331,38 @@ updateExample config action example =
             error
 
 
-grid : Optional { a | grid : Grid Cell } (Grid Cell)
+grid : Lens { a | grid : Grid Cell } (Grid Cell)
 grid =
-    { getOption = \example -> Just example.grid
+    { get = \example -> example.grid
     , set = \grid example -> { example | grid = grid }
     }
 
 
-{-| This is not actually an optional, clean this up later!
+{-| This is not actually a lens, clean this up later!
+Or is it? What are the lens axiomn?
+TODO
 -}
-asGameModel : Optional (Grid Cell) GameModel
+asGameModel : Lens (Grid Cell) GameModel
 asGameModel =
-    { getOption =
+    { get =
         \grid ->
-            Just
-                { level =
-                    { title = ""
-                    , author = ""
-                    , comments = []
-                    , content = grid
-                    }
-                , mistakes = 0
+            { level =
+                { title = ""
+                , author = ""
+                , comments = []
+                , content = grid
                 }
+            , mistakes = 0
+            }
     , set = \model _ -> model.level.content
     }
 
 
-updateTutorial : Config -> Literate.Index -> GameAction -> TutorialModel -> TutorialModel
-updateTutorial config index action model =
-    Literate.updateExample
-        index
-        (updateExample config action)
+updateTutorial : Config -> Literate.Msg GameAction -> TutorialModel -> TutorialModel
+updateTutorial config message model =
+    Literate.update
+        message
+        (updateExample config)
         model
 
 

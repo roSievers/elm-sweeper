@@ -38,6 +38,7 @@ from the project root, then open [index.html](http://localhost:8000/index.html) 
 
   - A “literate” mode mixing tutorial text and playable levels.
   - Arbitrary level size
+  - Zoom in on small levels
   - Ability to fade out all numbers, not only flowers and rows. (Which is really the reason this whole project got started.)
 
 ### Elm Sweeper might someday have

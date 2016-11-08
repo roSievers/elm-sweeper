@@ -261,3 +261,23 @@ a {
 .inline-large {
     height: 37.5em;
 }
+
+.tab-container {
+    width: 100%;
+    flex-direction: row;
+}
+
+.tab-preview {
+    width: 20%;
+    display: inline-flex;
+    border: 1px solid lightgray;
+    margin: -1px;
+}
+
+.tab-preview svg {
+  width: 100%;
+}
+
+.tab-content {
+    border: 1px solid lightgray;
+}

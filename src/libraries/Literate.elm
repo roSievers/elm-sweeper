@@ -4,9 +4,11 @@ module Literate
         , Segment(..)
         , Index
         , literate
-        , updateExample
+        , update
         , RenderConfig
+        , noPreview
         , toHtml
+        , Msg
         )
 
 {-| A library to write tutorials with interactive examples mixed in.
@@ -51,11 +53,13 @@ as an explanation of the program logic in a natural language,
 mixed with snippets of source code. Here puzzles take the place of the code.
 -}
 
-import Html exposing (Html, div)
+import Html exposing (Html, div, text)
 import Html.App
-import Html.Attributes
+import Html.Attributes exposing (class)
+import Html.Events exposing (onClick)
 import Markdown
 import List.Extra as List
+import Basics.Extra exposing (never)
 
 
 {-| Encodes a LiteratePuzzle.
@@ -92,12 +96,23 @@ nested id =
             Just index
 
 
+type Msg exampleMsg
+    = TabChange Int Int
+    | ExampleMsg Index exampleMsg
+
+
 {-| Specify how examples are rendered and messages are treated.
 -}
 type alias RenderConfig config example exampleMsg msg =
-    { renderExample : config -> example -> Html exampleMsg
-    , tagExampleMsg : Index -> exampleMsg -> msg
+    { example : config -> example -> Html exampleMsg
+    , preview : config -> example -> Html Never
+    , tagMsg : Msg exampleMsg -> msg
     }
+
+
+noPreview : config -> example -> Html Never
+noPreview _ _ =
+    div [] [ text "Previews are disabled." ]
 
 
 {-| A literate puzzle is a sequence of segments. Some of the segments might
@@ -146,6 +161,30 @@ processSegment segment =
 literate : List (Segment config example msg) -> LiteratePuzzle config example msg
 literate =
     List.map processSegment
+
+
+update :
+    Msg exampleMsg
+    -> (exampleMsg -> example -> example)
+    -> LiteratePuzzle config example msg
+    -> LiteratePuzzle config example msg
+update message updateFunction puzzle =
+    case message of
+        TabChange index subindex ->
+            List.updateAt index (updateActiveTab subindex) puzzle
+                |> Maybe.withDefault puzzle
+
+        ExampleMsg index exampleMsg ->
+            updateExample index (updateFunction exampleMsg) puzzle
+
+
+updateActiveTab subindex segment =
+    case segment of
+        Tabbed examples _ ->
+            Tabbed examples subindex
+
+        anythingElse ->
+            anythingElse
 
 
 {-| Try to update an example at a specific position.
@@ -210,14 +249,37 @@ segmentToHtml render config index segment =
             generateHtml config
 
         Interactive example ->
-            render.renderExample config example
-                |> Html.App.map (render.tagExampleMsg (Flat index))
+            render.example config example
+                |> Html.App.map (ExampleMsg (Flat index) >> render.tagMsg)
 
-        Tabbed examples _ ->
+        Tabbed examples activeSubindex ->
             div []
-                (List.indexedMap (nestedExampleToHtml render config index) examples)
+                [ div [ class "tab-container" ]
+                    (List.indexedMap (nestedExampleToHtml render config index) examples)
+                , div [ class "tab-content" ]
+                    [ activeExample render config index activeSubindex examples ]
+                ]
 
 
 nestedExampleToHtml render config index1 index2 example =
-    render.renderExample config example
-        |> Html.App.map (render.tagExampleMsg (Nested index1 index2))
+    div
+        [ class "tab-preview"
+        , onClick (render.tagMsg (TabChange index1 index2))
+        ]
+        [ render.preview config example
+            |> Html.App.map never
+        ]
+
+
+activeExample render config index activeSubindex examples =
+    let
+        maybeExample =
+            List.getAt activeSubindex examples
+    in
+        case maybeExample of
+            Just example ->
+                render.example config example
+                    |> Html.App.map (ExampleMsg (Nested index activeSubindex) >> render.tagMsg)
+
+            Nothing ->
+                div [] [ text "A nonexistent tab is active. This should be impossible." ]

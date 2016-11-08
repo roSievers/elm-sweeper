@@ -41,7 +41,7 @@ type alias Config =
 
 type Msg
     = GameMsg GameAction
-    | TutorialMsg Literate.Index GameAction
+    | TutorialMsg (Literate.Msg GameAction)
     | FlipControlls
     | FlipTabletMode
     | SetRoute Route
