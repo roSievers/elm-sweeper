@@ -1,4 +1,21 @@
-module Grid exposing (..)
+module Grid
+    exposing
+        ( Grid
+        , Coordinate
+        , at
+        , Direction(..)
+        , BoundingBox
+        , boundingBox
+        , isInside
+        , SvgStack
+        , singleton
+        , setOverlay
+        , view
+        , count
+        , foldDirected
+        , getNbhd
+        , getNbhd2
+        )
 
 import Dict exposing (Dict)
 import List
@@ -6,73 +23,79 @@ import Svg exposing (Svg)
 import Svg.Keyed
 import Monocle.Optional exposing (Optional)
 import Monocle.Common
+import Monocle.Iso exposing (Iso)
 
 
-{-| Implements a hexagonal grid type.
+{-| Implements a hexagonal grid type. The representation is sparse, i.e. using
+a Dictionary. As a result, the coordinates used in `Grid a` can be as large as `Int`.
 -}
 type alias Grid a =
-    Dict ( Int, Int ) a
+    Dict Coord a
 
 
+{-| Type alias for nice two-dimensional coordinates.
+-}
 type alias Coordinate =
     { x : Int
     , y : Int
     }
 
 
+{-| Internal type to work with a Dict of Coordinates.
+-}
+type alias Coord =
+    ( Int, Int )
+
+
+{-| Working with ( Int, Int ) inside the Grid module works around the missing
+comparable typeclass of records in elm. All exposed functions should only talk
+using `Coordinate`.
+-}
+coordIso : Iso Coordinate Coord
+coordIso =
+    { get = \r -> ( r.x, r.y )
+    , reverseGet = \( x, y ) -> { x = x, y = y }
+    }
+
+
+{-| There are six possible directions in a hexagonal grid.
+I don't need half of them at the moment, that is why they are missing.
+-}
 type Direction
     = Down
     | DownLeft
     | DownRight
 
 
-{-| Working with ( Int, Int ) inside the Grid module works around the missing
-comparable typeclass of records in elm. All exposed functions should only talk
-using Coordinate.
+{-| Moving in a direction isn't straitforward on a hexagonal grid, use this
+function to move by one.
 -}
-toCoordinate : ( Int, Int ) -> Coordinate
-toCoordinate ( x, y ) =
-    { x = x, y = y }
+moveDirection : Direction -> Coordinate -> Coordinate
+moveDirection direction coordinate =
+    case direction of
+        Down ->
+            { coordinate | y = coordinate.y + 1 }
+
+        DownRight ->
+            { x = coordinate.x + 1, y = coordinate.y + 1 }
+
+        DownLeft ->
+            { x = coordinate.x - 1, y = coordinate.y + 1 }
 
 
-updateAt : Coordinate -> (a -> a) -> Grid a -> Grid a
-updateAt coordinate function grid =
-    let
-        coord =
-            ( coordinate.x, coordinate.y )
-    in
-        Dict.get coord grid
-            |> Maybe.map
-                (\value -> Dict.insert coord (function value) grid)
-            |> Maybe.withDefault grid
 
+{-| A Monocle.Optional for accessing grid cells.
+This is the prefered way to interact with the grid contents.
 
-get : Coordinate -> Grid a -> Maybe a
-get coordinate grid =
-    Dict.get ( coordinate.x, coordinate.y ) grid
-
-
-insert : Coordinate -> a -> Grid a -> Grid a
-insert coordinate value grid =
-    Dict.insert ( coordinate.x, coordinate.y ) value grid
-
-{-| A Monocle.Optional for accessing grid cells. -}
+This means I have to copy pretty much no dict functions.
+-}
 at : Coordinate -> Optional (Grid a) a
 at coordinate =
-    Monocle.Common.dict ( coordinate.x, coordinate.y )
+    Monocle.Common.dict (coordIso.get coordinate)
 
 
-count : (a -> Bool) -> Grid a -> Int
-count doesCount grid =
-    Dict.foldl
-        (\_ a accumulator ->
-            if doesCount a then
-                accumulator + 1
-            else
-                accumulator
-        )
-        0
-        grid
+
+-- Calculating the BoundigBox
 
 
 type alias BoundingBox =
@@ -124,6 +147,9 @@ isInside box coordinate =
 -- View functions and helpers
 
 
+{-| In my application, there might be an overlay at each position.
+To capture this and correctly order the Svg elements use the SvgStack type.
+-}
 type alias SvgStack msg =
     ( Svg msg, Maybe (Svg msg) )
 
@@ -132,11 +158,15 @@ type alias RenderStack msg =
     ( List ( String, Svg msg ), List ( String, Svg msg ) )
 
 
+{-| Returns a SvgStack with no overlay.
+-}
 singleton : Svg msg -> SvgStack msg
 singleton svg =
     ( svg, Nothing )
 
 
+{-| Sets the overlay of a SvgStack and leaves the base in place.
+-}
 setOverlay : Svg msg -> SvgStack msg -> SvgStack msg
 setOverlay overlay ( base, _ ) =
     ( base, Just overlay )
@@ -159,47 +189,43 @@ collapseStack ( bases, overlays ) =
     bases ++ overlays
 
 
+{-| Core function used to turn a `Grid a` value into a Svg.
+-}
 view : (Grid a -> Coordinate -> a -> SvgStack msg) -> Grid a -> Svg msg
 view cellSvg grid =
+    let
+        appendToRenderStack coord a =
+            addToStack
+                (coordIso.reverseGet coord)
+                (cellSvg grid (coordIso.reverseGet coord) a)
+    in
+        Dict.foldl appendToRenderStack ( [], [] ) grid
+            |> collapseStack
+            |> Svg.Keyed.node "g" []
+
+
+
+-- Get global&local information about the Grid.
+
+
+count : (a -> Bool) -> Grid a -> Int
+count doesCount grid =
     Dict.foldl
-        (\coord a -> addToStack (toCoordinate coord) (cellSvg grid (toCoordinate coord) a))
-        ( [], [] )
+        (\_ a accumulator ->
+            if doesCount a then
+                accumulator + 1
+            else
+                accumulator
+        )
+        0
         grid
-        |> collapseStack
-        |> Svg.Keyed.node "g" []
-
-
-
--- Get (local) information about the Grid.
-
-
-moveDirection : Direction -> Coordinate -> Coordinate
-moveDirection direction coordinate =
-    case direction of
-        Down ->
-            { coordinate | y = coordinate.y + 1 }
-
-        DownRight ->
-            { x = coordinate.x + 1, y = coordinate.y + 1 }
-
-        -- if coordinate.x % 2 == 0 then
-        --     { coordinate | x = coordinate.x + 1 }
-        -- else
-        --     { x = coordinate.x + 1, y = coordinate.y + 1 }
-        DownLeft ->
-            { x = coordinate.x - 1, y = coordinate.y + 1 }
-
-
-
--- if coordinate.x % 2 == 0 then
---     { coordinate | x = coordinate.x - 1 }
--- else
---     { x = coordinate.x - 1, y = coordinate.y + 1 }
 
 
 {-| This fold function starts at a given coordinate and keeps moving
 in a direction until the accumulating function returns Nothing.
 Then the last Just value is returned.
+
+Defined using tail recursion.
 -}
 foldDirected :
     (Coordinate -> Maybe a -> b -> Maybe b)
@@ -209,7 +235,7 @@ foldDirected :
     -> Coordinate
     -> b
 foldDirected fold init direction grid basePoint =
-    Dict.get ( basePoint.x, basePoint.y ) grid
+    Dict.get (coordIso.get basePoint) grid
         |> (\a -> fold basePoint a init)
         |> (\maybeB ->
                 case maybeB of

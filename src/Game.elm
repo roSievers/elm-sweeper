@@ -75,5 +75,5 @@ handleReveal flippedControlls button coordinate model =
                             | mistakes = model.mistakes + 1
                         }
         )
-        (Grid.get coordinate model.level.content)
+        ((Grid.at coordinate).getOption model.level.content)
         |> Maybe.withDefault model
