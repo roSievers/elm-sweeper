@@ -18,12 +18,13 @@ import Grid exposing (Grid)
 import Cell exposing (Cell)
 import Game
 import Dict exposing (Dict)
-import Monocle.Lens as Lens exposing(Lens)
+import Monocle.Lens as Lens exposing (Lens)
 import Literate exposing (LiteratePuzzle, Segment(..), RenderConfig)
 
 
 (>>>) : Lens a b -> Lens b c -> Lens a c
-(>>>) = Lens.compose
+(>>>) =
+    Lens.compose
 
 
 type alias TutorialModel =
@@ -225,14 +226,14 @@ extra layer. Sounds complicated? Click on a flower to see where it counts mines.
 (Note that the flower itself does not count towards the total.)
 
 """
-    , puzzleGroup Large ["""
+    , puzzleGroup Large [ """
 ..........o+..........
 ....X...x...o+..x.....
 ..o+......on......o+..
 X+..X...O+..X+..x...O+
 ..o+......x.......oc..
 ....X...o...o+..x+....
-..........o+..........""","""
+..........o+..........""", """
 ....|n......
 ..|c........
 \\+..x...o+..
@@ -241,7 +242,7 @@ X+..X...O+..X+..x...O+
 ..x+......x.
 ....x...x+..
 ..x...o+..o+
-....o+..o+..""","""
+....o+..o+..""", """
 ..........x...o+..........
 ........x+..o+..o.........
 ..........on..x+..........
@@ -252,8 +253,7 @@ O+..Oc..O+..x+..o+......o+
 ....o+......o+......o+....
 ..........oc..o...........
 ........o+..x+..x+........
-..........x...x..........."""]
-
+..........x...x...........""" ]
     ]
         |> Literate.literate
 
@@ -280,7 +280,7 @@ mineButton flippedControlls =
 type Example
     = Plain
         { height : ExampleHeight
-        , grid : Grid Cell
+        , game : GameModel
         }
     | LoadError String
 
@@ -307,7 +307,7 @@ renderExample : Config -> Example -> Html GameAction
 renderExample _ example =
     case example of
         Plain data ->
-            GameView.viewLevel "" ("inline-grid " ++ sizeClass data.height) data.grid
+            GameView.viewLevel "" ("inline-grid " ++ sizeClass data.height) data.game.level.content
 
         LoadError errorMessage ->
             p []
@@ -316,12 +316,11 @@ renderExample _ example =
                 ]
 
 
-
 renderPreview : Config -> Example -> Html msg
 renderPreview _ example =
     case example of
         Plain data ->
-            GameView.previewLevel "" data.grid
+            GameView.previewLevel "" data.game.level.content
 
         LoadError errorMessage ->
             p []
@@ -343,7 +342,7 @@ updateExample config action example =
     case example of
         Plain data ->
             Plain
-                (Lens.modify (grid >>> asGameModel)
+                (Lens.modify game
                     (Game.updateGame config action)
                     data
                 )
@@ -352,10 +351,10 @@ updateExample config action example =
             error
 
 
-grid : Lens { a | grid : Grid Cell } (Grid Cell)
-grid =
-    { get = \example -> example.grid
-    , set = \grid example -> { example | grid = grid }
+game : Lens { a | game : GameModel } GameModel
+game =
+    { get = .game
+    , set = \game example -> { example | game = game }
     }
 
 
@@ -379,6 +378,18 @@ asGameModel =
     }
 
 
+initGameModel : Grid Cell -> GameModel
+initGameModel grid =
+    { level =
+        { title = ""
+        , author = ""
+        , comments = []
+        , content = grid
+        }
+    , mistakes = 0
+    }
+
+
 updateTutorial : Config -> Literate.Msg GameAction -> TutorialModel -> TutorialModel
 updateTutorial config message model =
     Literate.update
@@ -398,7 +409,7 @@ toExample height data =
         Ok grid ->
             Plain
                 { height = height
-                , grid = grid
+                , game = initGameModel grid
                 }
 
         Err errorMessages ->
