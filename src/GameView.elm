@@ -1,4 +1,4 @@
-module GameView exposing (gameView, viewLevel, previewLevel)
+module GameView exposing (gameView, viewLevel, previewLevel, statsText)
 
 import Html exposing (Html, div, text)
 import Html.App
@@ -14,6 +14,7 @@ import Grid exposing (Grid, Direction(..), Coordinate)
 import Types exposing (..)
 import Cell exposing (Cell(..))
 import Counting exposing (..)
+import Components
 
 
 gameView : Config -> GameModel -> Html Msg
@@ -52,8 +53,8 @@ sidebar config model =
         |> Html.div []
 
 
-stats : GameModel -> Html Msg
-stats model =
+statsText : GameModel -> ( String, String )
+statsText model =
     let
         minesLeft =
             Grid.count Cell.isHiddenMine model.level.content
@@ -74,16 +75,19 @@ stats model =
             else
                 toString model.mistakes ++ " mistakes"
     in
+        ( mineText, mistakeText )
+
+
+stats : GameModel -> Html Msg
+stats model =
+    let
+        ( mineText, mistakeText ) =
+            statsText model
+    in
         Html.div []
-            [ Html.div [ Html.Attributes.class "flat-label" ]
-                [ Html.text mineText ]
-            , Html.div [ Html.Attributes.class "flat-label" ]
-                [ Html.text mistakeText ]
-            , Html.div
-                [ Html.Attributes.class "flat-button"
-                , Html.Events.onClick (SetRoute MainMenu)
-                ]
-                [ Html.text "Menu" ]
+            [ Components.flatLabel mineText
+            , Components.flatLabel mistakeText
+            , Components.flatButton (SetRoute MainMenu) "Menu"
             ]
 
 

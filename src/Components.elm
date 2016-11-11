@@ -14,9 +14,25 @@ flatButton message caption =
         [ text caption ]
 
 
+flatLabel : String -> Html msg
+flatLabel caption =
+    div [ class "flat-label" ]
+        [ text caption ]
+
+
 paperWrapper : List (Html msg) -> Html msg
 paperWrapper content =
     div [ Html.Attributes.id "outer-text-container" ]
         [ div [ Html.Attributes.id "inner-text-container" ]
             content
         ]
+
+
+blockContainer : List (Html msg) -> Html msg
+blockContainer elements =
+    let
+        blockWrapper content =
+            div [ class "flex-block" ] [ content ]
+    in
+        div [ class "flex-container" ]
+            (List.map blockWrapper elements)

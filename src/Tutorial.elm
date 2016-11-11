@@ -20,6 +20,7 @@ import Game
 import Dict exposing (Dict)
 import Monocle.Lens as Lens exposing (Lens)
 import Literate exposing (LiteratePuzzle, Segment(..), RenderConfig)
+import Components
 
 
 (>>>) : Lens a b -> Lens b c -> Lens a c
@@ -279,10 +280,16 @@ mineButton flippedControlls =
 
 type Example
     = Plain
-        { height : ExampleHeight
+        { config : ExampleDisplayConfig
         , game : GameModel
         }
     | LoadError String
+
+
+type alias ExampleDisplayConfig =
+    { height : ExampleHeight
+    , displayInformation : Bool
+    }
 
 
 type ExampleHeight
@@ -307,13 +314,32 @@ renderExample : Config -> Example -> Html GameAction
 renderExample _ example =
     case example of
         Plain data ->
-            GameView.viewLevel "" ("inline-grid " ++ sizeClass data.height) data.game.level.content
+            div []
+                [ renderInformation data
+                , GameView.viewLevel "" ("inline-grid " ++ sizeClass data.config.height) data.game.level.content
+                ]
 
         LoadError errorMessage ->
             p []
                 [ text "An error occured: "
                 , text errorMessage
                 ]
+
+
+renderInformation data =
+    case data.config.displayInformation of
+        True ->
+            let
+                ( mineText, mistakeText ) =
+                    GameView.statsText data.game
+            in
+                 Components.blockContainer
+                    [ Components.flatLabel mineText
+                    , Components.flatLabel mistakeText
+                    ]
+
+        False ->
+            div [] []
 
 
 renderPreview : Config -> Example -> Html msg
@@ -403,12 +429,12 @@ toHtml config model =
     Literate.toHtml renderConfig config model
 
 
-toExample : ExampleHeight -> String -> Example
-toExample height data =
+toExample : ExampleDisplayConfig -> String -> Example
+toExample config data =
     case HexcellParser.parseCellGrid data of
         Ok grid ->
             Plain
-                { height = height
+                { config = config
                 , game = initGameModel grid
                 }
 
@@ -418,10 +444,10 @@ toExample height data =
 
 puzzleInline : ExampleHeight -> String -> Segment config Example msg
 puzzleInline height data =
-    InlineExample (toExample height data)
+    InlineExample (toExample { height = height, displayInformation = False } data)
 
 
 puzzleGroup : ExampleHeight -> List String -> Segment config Example msg
 puzzleGroup height levels =
-    List.map (toExample height) levels
+    List.map (toExample { height = height, displayInformation = True }) levels
         |> TabbedExample

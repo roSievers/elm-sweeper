@@ -167,16 +167,10 @@ mainMenuView model =
             , a [ href "http://store.steampowered.com/app/265890/" ] [ text "Hexcells" ]
             , text " as a web application. Hexcells is a supercharged Minesweeper with hand crafted levels."
             ]
-        , div [ Html.Attributes.class "flex-container" ]
-            [ div [ Html.Attributes.class "flex-block" ]
-                [ Components.flatButton (SetRoute Tutorial) "Tutorial"
-                ]
-            , div [ Html.Attributes.class "flex-block" ]
-                [ Components.flatButton (SetRoute InGame) "Current Game"
-                ]
-            , div [ Html.Attributes.class "flex-block" ]
-                [ Components.flatButton FlipTabletMode "Swich Tablet Mode"
-                ]
+        , Components.blockContainer
+            [ Components.flatButton (SetRoute Tutorial) "Tutorial"
+            , Components.flatButton (SetRoute InGame) "Current Game"
+            , Components.flatButton FlipTabletMode "Swich Tablet Mode"
             ]
         , p []
             [ text "Community made levels are collected on "
