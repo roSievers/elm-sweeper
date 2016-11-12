@@ -12,7 +12,8 @@ import Cell exposing (Cell)
 import Game
 import ExampleLevel
 import GameView
-import Tutorial exposing (tutorial, TutorialModel)
+import Tutorial exposing (tutorial)
+import MixedPuzzle exposing (MixedPuzzle)
 import Monocle.Lens as Lens exposing (Lens)
 import Monocle.Optional as Optional
 import Monocle.Common exposing ((=>))
@@ -41,7 +42,7 @@ main =
 type alias Model =
     { route : Route
     , currentGame : GameModel
-    , tutorial : TutorialModel
+    , tutorial : MixedPuzzle
     , pasteBox : String
     , config : Config
     }
@@ -108,7 +109,7 @@ update action model =
 
         TutorialMsg literateMsg ->
             Return.singleton
-                { model | tutorial = Tutorial.updateTutorial model.config literateMsg model.tutorial }
+                { model | tutorial = MixedPuzzle.update model.config literateMsg model.tutorial }
 
         FlipControlls ->
             model
@@ -155,7 +156,7 @@ view model =
             mainMenuView model
 
         Tutorial ->
-            Tutorial.toHtml model.config model.tutorial
+            MixedPuzzle.toHtml model.config model.tutorial
 
 
 mainMenuView : Model -> Html Msg

@@ -7,39 +7,21 @@ in the game. It contains playable examples to teach mechanics.
 
 -}
 
-import Html exposing (Html, div, text, p, a)
-import Html.App
+import Html exposing (Html, div, text, p, a, button)
 import Html.Events exposing (onClick)
-import Html.Attributes
 import Types exposing (..)
-import HexcellParser
-import GameView
-import Grid exposing (Grid)
-import Cell exposing (Cell)
-import Game
-import Dict exposing (Dict)
-import Monocle.Lens as Lens exposing (Lens)
-import Literate exposing (LiteratePuzzle, Segment(..), RenderConfig)
+import Literate exposing (Segment(..))
 import Components
-
-
-(>>>) : Lens a b -> Lens b c -> Lens a c
-(>>>) =
-    Lens.compose
-
-
-type alias TutorialModel =
-    LiteratePuzzle Config Example Msg
+import MixedPuzzle exposing (MixedPuzzle, puzzleInline, puzzleGroup, ExampleHeight(..))
 
 
 {-| The tutorial, written using the Literate library.
+See MixedPuzzle.elm to see how the library is connected to the game specific code.
 -}
-tutorial : TutorialModel
+tutorial : MixedPuzzle
 tutorial =
     [ StaticHtml
-        (Html.button [ Html.Events.onClick (SetRoute MainMenu) ]
-            [ Html.text "Main Menu" ]
-        )
+        (Components.flatButton (SetRoute MainMenu) "Main Menu")
     , StaticMarkdown """
 # How to play Elm Sweeper
 
@@ -271,183 +253,3 @@ mineButton flippedControlls =
         "left"
     else
         "right"
-
-
-
--- This wires the LiteratePuzzle up for use with Elm Sweeper.
--- Might go into a SweeperLiterate.elm file when there are several literate files.
-
-
-type Example
-    = Plain
-        { config : ExampleDisplayConfig
-        , game : GameModel
-        }
-    | LoadError String
-
-
-type alias ExampleDisplayConfig =
-    { height : ExampleHeight
-    , displayInformation : Bool
-    }
-
-
-type ExampleHeight
-    = Small
-    | Medium
-    | Large
-
-
-sizeClass height =
-    case height of
-        Small ->
-            "inline-small"
-
-        Medium ->
-            "inline-medium"
-
-        Large ->
-            "inline-large"
-
-
-renderExample : Config -> Example -> Html GameAction
-renderExample _ example =
-    case example of
-        Plain data ->
-            div []
-                [ renderInformation data
-                , GameView.viewLevel "" ("inline-grid " ++ sizeClass data.config.height) data.game.level.content
-                ]
-
-        LoadError errorMessage ->
-            p []
-                [ text "An error occured: "
-                , text errorMessage
-                ]
-
-
-renderInformation data =
-    case data.config.displayInformation of
-        True ->
-            let
-                ( mineText, mistakeText ) =
-                    GameView.statsText data.game
-            in
-                 Components.blockContainer
-                    [ Components.flatLabel mineText
-                    , Components.flatLabel mistakeText
-                    ]
-
-        False ->
-            div [] []
-
-
-renderPreview : Config -> Example -> Html msg
-renderPreview _ example =
-    case example of
-        Plain data ->
-            GameView.previewLevel "" data.game.level.content
-
-        LoadError errorMessage ->
-            p []
-                [ text "An error occured: "
-                , text errorMessage
-                ]
-
-
-renderConfig : RenderConfig Config Example GameAction Msg
-renderConfig =
-    { example = renderExample
-    , preview = renderPreview
-    , tagMsg = TutorialMsg
-    }
-
-
-updateExample : Config -> GameAction -> Example -> Example
-updateExample config action example =
-    case example of
-        Plain data ->
-            Plain
-                (Lens.modify game
-                    (Game.updateGame config action)
-                    data
-                )
-
-        (LoadError _) as error ->
-            error
-
-
-game : Lens { a | game : GameModel } GameModel
-game =
-    { get = .game
-    , set = \game example -> { example | game = game }
-    }
-
-
-{-| This is not actually a lens, clean this up later!
-Or is it? What are the lens axiomn?
-TODO
--}
-asGameModel : Lens (Grid Cell) GameModel
-asGameModel =
-    { get =
-        \grid ->
-            { level =
-                { title = ""
-                , author = ""
-                , comments = []
-                , content = grid
-                }
-            , mistakes = 0
-            }
-    , set = \model _ -> model.level.content
-    }
-
-
-initGameModel : Grid Cell -> GameModel
-initGameModel grid =
-    { level =
-        { title = ""
-        , author = ""
-        , comments = []
-        , content = grid
-        }
-    , mistakes = 0
-    }
-
-
-updateTutorial : Config -> Literate.Msg GameAction -> TutorialModel -> TutorialModel
-updateTutorial config message model =
-    Literate.update
-        message
-        (updateExample config)
-        model
-
-
-toHtml : Config -> TutorialModel -> Html Msg
-toHtml config model =
-    Literate.toHtml renderConfig config model
-
-
-toExample : ExampleDisplayConfig -> String -> Example
-toExample config data =
-    case HexcellParser.parseCellGrid data of
-        Ok grid ->
-            Plain
-                { config = config
-                , game = initGameModel grid
-                }
-
-        Err errorMessages ->
-            LoadError (toString errorMessages)
-
-
-puzzleInline : ExampleHeight -> String -> Segment config Example msg
-puzzleInline height data =
-    InlineExample (toExample { height = height, displayInformation = False } data)
-
-
-puzzleGroup : ExampleHeight -> List String -> Segment config Example msg
-puzzleGroup height levels =
-    List.map (toExample { height = height, displayInformation = True }) levels
-        |> TabbedExample
