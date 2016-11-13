@@ -151,7 +151,7 @@ view : Model -> Html Msg
 view model =
     case model.route of
         InGame ->
-            Fullscreen.gameView model.config model.currentGame
+            Fullscreen.fullscreen model.config model.currentGame
 
         MainMenu ->
             mainMenuView model

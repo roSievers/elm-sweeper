@@ -1,7 +1,15 @@
-module GameView exposing (viewLevel, previewLevel, statsText, translate, hexagon)
+module GameView
+    exposing
+        ( viewLevel
+        , previewLevel
+        , statsText
+        , intentDisplay
+        )
+
+{-| This module mixes Html and Svg. It would be nice it that was split up. -}
 
 import Html exposing (Html, div, text)
-import Html.App
+import Html.App as Html
 import Html.Events
 import Html.Attributes
 import Svg exposing (Svg, svg, rect)
@@ -15,6 +23,7 @@ import Types exposing (..)
 import Cell exposing (Cell(..))
 import Counting exposing (..)
 import Components
+
 
 statsText : GameModel -> ( String, String )
 statsText model =
@@ -39,7 +48,6 @@ statsText model =
                 toString model.mistakes ++ " mistakes"
     in
         ( mineText, mistakeText )
-
 
 
 viewLevel : String -> String -> Grid Cell -> Html.Html GameAction
@@ -126,8 +134,8 @@ cellSvgPreview grid coordinate cell =
 cell without actually creating any Svg nodes yet. This allows some late
 modifications (like removing event handlers and overlays).
 
-There are a few `Html.App.map never` sprinkled in the code they can be
-replaced by Svg.map once Elm 0.18 is out.
+There are a few `Html.map never` sprinkled in the code they can be
+replaced by `Svg.map never` once Elm 0.18 is out.
 -}
 type alias CellDisplay =
     { class : String
@@ -155,7 +163,7 @@ genericCellInteractive displayData =
 
         content =
             displayData.content
-                |> List.map (Html.App.map never)
+                |> List.map (Html.map never)
     in
         case displayData.overlay of
             Nothing ->
@@ -165,7 +173,7 @@ genericCellInteractive displayData =
             Just overlayContent ->
                 Svg.g attributes content
                     |> Grid.singleton
-                    |> Grid.setOverlay (Svg.g [ position ] (List.map (Html.App.map never) overlayContent))
+                    |> Grid.setOverlay (Svg.g [ position ] (List.map (Html.map never) overlayContent))
 
 
 genericCellPreview : CellDisplay -> Grid.SvgStack msg
@@ -180,7 +188,7 @@ genericCellPreview displayData =
             ]
     in
         Svg.g attributes displayData.content
-            |> Html.App.map never
+            |> Html.map never
             |> Grid.singleton
 
 
@@ -419,3 +427,37 @@ rotation direction =
 
         DownRight ->
             Svg.Attributes.transform "rotate(-60)"
+
+
+
+-- Intent Display
+
+
+{-| This svg informs the player about the current intent (reveal, mark mine)
+and allows them to change it.
+-}
+intentDisplay : Bool -> Svg Msg
+intentDisplay flippedControlls =
+    svg
+        [ Html.Attributes.id "intent"
+        , Svg.Attributes.class
+            (if flippedControlls then
+                "flipped"
+             else
+                ""
+            )
+        , Svg.Events.onClick FlipControlls
+        , viewBox "-1.2 -1.2 2.4 2.4"
+        , preserveAspectRatio "xMidYMid meet"
+        ]
+        [ Svg.g
+            [ Svg.Attributes.class "right-click-intent"
+            , Svg.Attributes.transform "translate(0.2, -0.1)"
+            ]
+            [ hexagon "hex" ]
+        , Svg.g
+            [ Svg.Attributes.class "left-click-intent"
+            , Svg.Attributes.transform "translate(-0.2, 0.1)"
+            ]
+            [ hexagon "hex" ]
+        ]
