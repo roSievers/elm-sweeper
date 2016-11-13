@@ -76,16 +76,12 @@ html, head, body {
     box-flex: 0;
 }
 
-.footer-large {
-    height: 200px;
-}
-
-.footer-small {
-    height: 100px;
-}
-
-.footer-none {
-    display: none;
+.level-comments {
+    font-size: 40;
+    color: lightgray;
+    text-align: center;
+    font-weight: bold;
+    padding: 0.5em;
 }
 
 #levelView {

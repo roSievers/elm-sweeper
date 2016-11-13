@@ -12,6 +12,7 @@ import Cell exposing (Cell)
 import Game
 import ExampleLevel
 import GameView
+import Fullscreen
 import Tutorial exposing (tutorial)
 import MixedPuzzle exposing (MixedPuzzle)
 import Monocle.Lens as Lens exposing (Lens)
@@ -150,7 +151,7 @@ view : Model -> Html Msg
 view model =
     case model.route of
         InGame ->
-            GameView.gameView model.config model.currentGame
+            Fullscreen.gameView model.config model.currentGame
 
         MainMenu ->
             mainMenuView model

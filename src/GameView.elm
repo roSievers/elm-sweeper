@@ -1,4 +1,4 @@
-module GameView exposing (gameView, viewLevel, previewLevel, statsText)
+module GameView exposing (viewLevel, previewLevel, statsText, translate, hexagon)
 
 import Html exposing (Html, div, text)
 import Html.App
@@ -15,43 +15,6 @@ import Types exposing (..)
 import Cell exposing (Cell(..))
 import Counting exposing (..)
 import Components
-
-
-gameView : Config -> GameModel -> Html Msg
-gameView config model =
-    div []
-        [ flexibleMainContent
-            (viewLevel "levelView" "" model.level.content
-                |> Html.App.map GameMsg
-            )
-            (comment model.level.comments)
-            (sidebar config model)
-        , attribution model.level
-        ]
-
-
-flexibleMainContent : Html msg -> Html msg -> Html msg -> Html msg
-flexibleMainContent mainContent footer sidebar =
-    div [ Html.Attributes.id "flexbox-wrapper" ]
-        [ div [ Html.Attributes.id "flexbox-sidebar" ] [ sidebar ]
-        , div [ Html.Attributes.id "flexbox-main" ]
-            [ div [ Html.Attributes.id "flexbox-grid" ] [ mainContent ]
-            , footer
-            ]
-        ]
-
-
-sidebar : Config -> GameModel -> Html Msg
-sidebar config model =
-    [ Just (stats model)
-    , if config.tabletMode then
-        Just (intentDisplay config.flippedControlls)
-      else
-        Nothing
-    ]
-        |> List.filterMap identity
-        |> Html.div []
-
 
 statsText : GameModel -> ( String, String )
 statsText model =
@@ -77,61 +40,6 @@ statsText model =
     in
         ( mineText, mistakeText )
 
-
-stats : GameModel -> Html Msg
-stats model =
-    let
-        ( mineText, mistakeText ) =
-            statsText model
-    in
-        Html.div []
-            [ Components.flatLabel mineText
-            , Components.flatLabel mistakeText
-            , Components.flatButton (SetRoute MainMenu) "Menu"
-            ]
-
-
-attribution : Level -> Html msg
-attribution level =
-    Html.div [ Html.Attributes.id "levelMeta" ]
-        [ Html.text level.title
-        , Html.br [] []
-        , Html.text <| "by " ++ level.author
-        ]
-
-
-comment : List String -> Html msg
-comment comments =
-    let
-        textNode index caption =
-            Svg.text'
-                [ Svg.Attributes.style "text-anchor:middle;fill:lightgray;font-weight:bold;"
-                , atCoordinate { x = 0, y = 30 + index * 30 }
-                ]
-                [ Svg.text caption ]
-    in
-        if List.length comments == 0 then
-            div [ Html.Attributes.id "flexbox-footer", Html.Attributes.class "footer-none" ] []
-        else if List.length comments == 1 then
-            div [ Html.Attributes.id "flexbox-footer", Html.Attributes.class "footer-small" ]
-                [ Svg.svg
-                    [ Html.Attributes.id "comments"
-                    , width "100%"
-                    , height "100%"
-                    , viewBox "-100 5 100 35"
-                    ]
-                    (List.indexedMap textNode comments)
-                ]
-        else
-            div [ Html.Attributes.id "flexbox-footer", Html.Attributes.class "footer-large" ]
-                [ Svg.svg
-                    [ Html.Attributes.id "comments"
-                    , width "100%"
-                    , height "100%"
-                    , viewBox "-100 0 200 70"
-                    ]
-                    (List.indexedMap textNode comments)
-                ]
 
 
 viewLevel : String -> String -> Grid Cell -> Html.Html GameAction
@@ -421,7 +329,7 @@ overlayLine rotation overlay =
             [ Svg.Attributes.x1 "0"
             , Svg.Attributes.y1 "0.866"
             , Svg.Attributes.x2 "0"
-            , Svg.Attributes.y2 "40"
+            , Svg.Attributes.y2 "100"
             , classListOld [ ( "row-counter-overlay", True ), ( "row-counter-active", overlay ) ]
             ]
             []
@@ -511,37 +419,3 @@ rotation direction =
 
         DownRight ->
             Svg.Attributes.transform "rotate(-60)"
-
-
-
--- Intent Display
-
-
-{-| This svg informs the player about the current intent (reveal, mark mine)
-and allows them to change it.
--}
-intentDisplay : Bool -> Svg Msg
-intentDisplay flippedControlls =
-    svg
-        [ Html.Attributes.id "intent"
-        , Svg.Attributes.class
-            (if flippedControlls then
-                "flipped"
-             else
-                ""
-            )
-        , Svg.Events.onClick FlipControlls
-        , viewBox "-1.2 -1.2 2.4 2.4"
-        , preserveAspectRatio "xMidYMid meet"
-        ]
-        [ Svg.g
-            [ Svg.Attributes.class "right-click-intent"
-            , Svg.Attributes.transform "translate(0.2, -0.1)"
-            ]
-            [ hexagon "hex" ]
-        , Svg.g
-            [ Svg.Attributes.class "left-click-intent"
-            , Svg.Attributes.transform "translate(-0.2, 0.1)"
-            ]
-            [ hexagon "hex" ]
-        ]
