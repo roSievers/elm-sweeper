@@ -55,7 +55,7 @@ mixed with snippets of source code. Here puzzles take the place of the code.
 
 import Html exposing (Html, div, text)
 import Html.App
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Markdown
 import List.Extra as List
@@ -254,16 +254,53 @@ segmentToHtml render config index segment =
 
         Tabbed examples activeSubindex ->
             div []
-                [ div [ class "tab-container" ]
+                [ tabHeader
                     (List.indexedMap (nestedExampleToHtml render config index) examples)
-                , div [ class "tab-content" ]
+                , div [ style [ ( "border", "1px solid lightgray" ) ] ]
                     [ activeExample render config index activeSubindex examples ]
                 ]
 
 
+tabHeader : List (Html msg) -> Html msg
+tabHeader tabs =
+    let
+        length =
+            List.length tabs
+
+        tabsPerLine =
+            if length <= 6 then
+                length
+            else
+                6
+
+        tabWidth =
+            if length > 0 then
+                100 / toFloat tabsPerLine
+            else
+                100
+
+        wrapTab tab =
+            div
+                [ style
+                    [ ( "width", toString tabWidth ++ "%" )
+                    , ( "display", "inline-flex" )
+                    ]
+                ]
+                [ tab ]
+    in
+        div
+            [ style [ ( "width", "100%" ), ( "flex-direction", "row" ) ]
+            ]
+            (List.map wrapTab tabs)
+
+
 nestedExampleToHtml render config index1 index2 example =
     div
-        [ class "tab-preview"
+        [ style
+            [ ( "width", "100%" )
+            , ( "border", "1px solid lightgray" )
+            , ( "text-align", "center" )
+            ]
         , onClick (render.tagMsg (TabChange index1 index2))
         ]
         [ render.preview config example
