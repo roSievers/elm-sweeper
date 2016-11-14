@@ -2,7 +2,6 @@ module MixedPuzzle
     exposing
         ( MixedPuzzle
         , Example
-        , ExampleHeight(..)
         , update
         , puzzleInline
         , puzzleGroup
@@ -10,7 +9,7 @@ module MixedPuzzle
         )
 
 import Html exposing (Html, div, text, p, a)
-import Html.Attributes
+import Html.Attributes exposing (style, class)
 import Types exposing (..)
 import HexcellParser
 import GameView
@@ -22,50 +21,40 @@ import Monocle.Lens as Lens exposing (Lens)
 import Literate exposing (LiteratePuzzle, Segment(..), RenderConfig)
 import Components
 
+
 type alias MixedPuzzle =
     LiteratePuzzle Config Example Msg
 
 
-type Example
-    = Plain
-        { config : ExampleDisplayConfig
-        , game : GameModel
-        }
-    | LoadError String
-
-
-type alias ExampleDisplayConfig =
-    { height : ExampleHeight
+type alias ExampleData =
+    { game : GameModel
+    , height : Int
     , displayInformation : Bool
     }
 
 
-type ExampleHeight
-    = Small
-    | Medium
-    | Large
+type Example
+    = Plain ExampleData
+    | LoadError String
 
 
-sizeClass height =
-    case height of
-        Small ->
-            "inline-small"
-
-        Medium ->
-            "inline-medium"
-
-        Large ->
-            "inline-large"
+emSize : Int -> Html.Attribute msg
+emSize height =
+    let
+        h =
+            (toFloat height + 1) * 3
+    in
+        style [ ( "height", toString h ++ "em" ) ]
 
 
 renderExample : Config -> Example -> Html GameAction
-renderExample _ example =
+renderExample config example =
     case example of
         Plain data ->
-            div []
-                [ renderInformation data
-                , GameView.viewLevel "" ("inline-grid " ++ sizeClass data.config.height) data.game.level.content
-                ]
+            if data.displayInformation then
+                withUI config data
+            else
+                withoutUI config data
 
         LoadError errorMessage ->
             p []
@@ -74,20 +63,25 @@ renderExample _ example =
                 ]
 
 
-renderInformation data =
-    case data.config.displayInformation of
-        True ->
-            let
-                ( mineText, mistakeText ) =
-                    GameView.statsText data.game
-            in
-                Components.blockContainer
-                    [ Components.flatLabel mineText
-                    , Components.flatLabel mistakeText
-                    ]
+withUI : Config -> ExampleData -> Html GameAction
+withUI config data =
+    let
+        ( mineText, mistakeText ) =
+            GameView.statsText data.game
+    in
+        div []
+            [ Components.blockContainer
+                [ Components.flatLabel mineText
+                , Components.flatLabel mistakeText
+                ]
+            , withoutUI config data
+            ]
 
-        False ->
-            div [] []
+
+withoutUI : Config -> ExampleData -> Html GameAction
+withoutUI config data =
+    div [ emSize data.height ]
+        [ GameView.viewLevel "" "inline-grid" data.game.level.content ]
 
 
 renderPreview : Config -> Example -> Html msg
@@ -177,25 +171,25 @@ toHtml config model =
     Literate.toHtml renderConfig config model
 
 
-toExample : ExampleDisplayConfig -> String -> Example
-toExample config data =
+toExample : (GameModel -> ExampleData) -> String -> Example
+toExample wrapSuccess data =
     case HexcellParser.parseCellGrid data of
         Ok grid ->
-            Plain
-                { config = config
-                , game = initGameModel grid
-                }
+            grid
+              |> initGameModel
+              |> wrapSuccess
+              |> Plain
 
         Err errorMessages ->
             LoadError (toString errorMessages)
 
 
-puzzleInline : ExampleHeight -> String -> Segment config Example msg
+puzzleInline : Int -> String -> Segment config Example msg
 puzzleInline height data =
-    InlineExample (toExample { height = height, displayInformation = False } data)
+    InlineExample (toExample (\model -> ExampleData model height False ) data)
 
 
-puzzleGroup : ExampleHeight -> List String -> Segment config Example msg
+puzzleGroup : Int -> List String -> Segment config Example msg
 puzzleGroup height levels =
-    List.map (toExample { height = height, displayInformation = True }) levels
+    List.map (toExample (\model -> ExampleData model height True )) levels
         |> TabbedExample

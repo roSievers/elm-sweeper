@@ -243,17 +243,6 @@ a {
 }
 
 .inline-grid {
-    width: 100%
-}
-
-.inline-small {
-    height: 12.5em;
-}
-
-.inline-medium {
-    height: 25em;
-}
-
-.inline-large {
-    height: 37.5em;
+    width: 100%;
+    height: 100%;
 }

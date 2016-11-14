@@ -12,7 +12,7 @@ import Html.Events exposing (onClick)
 import Types exposing (..)
 import Literate exposing (Segment(..))
 import Components
-import MixedPuzzle exposing (MixedPuzzle, puzzleInline, puzzleGroup, ExampleHeight(..))
+import MixedPuzzle exposing (MixedPuzzle, puzzleInline, puzzleGroup)
 
 
 {-| The tutorial, written using the Literate library.
@@ -52,7 +52,7 @@ The number tells you how many of the adjacent hexes contain mines.
     , StaticMarkdown """
 **Todo:** Implement a tablet mode, explain it here and put a *swich on tablet mode* button.
 """
-    , puzzleInline Small """
+    , puzzleInline 3 """
 ..o+..x.........O+
 O+..o+..O+....x...x.
 ......x...o+....x.
@@ -60,7 +60,7 @@ O+..o+..O+....x...x.
     , StaticMarkdown """
 Not all patterns are quite as easy to uncover. Can you figure out how to solve these two puzzles?
 Try not to guess! I promise that it is possible."""
-    , puzzleInline Small """
+    , puzzleInline 4 """
 ..o+............O+....
 O+..O+........x...x...
 ..x...o+........o+..O+
@@ -72,7 +72,7 @@ to get you started. Skip ahead if you feel comfortable already.
 
 **TODO:** Embed several levels in here. With some GUI (Mistakes, Mines left)
 This might also be a good place to introduce the total count as a mechanic."""
-    , puzzleInline Small """
+    , puzzleInline 5 """
 ....X.
 ..o+..o+
 O+..O+..O+
@@ -88,11 +88,10 @@ Dashes as in `-3-` indicate that the adjacent cells form two or more groups.
 Here are some examples:
 
 """
-    , puzzleInline Small """
+    , puzzleInline 3 """
 ..Oc......On....X.....
 X...X...X...X.....On..
 ..X.......O+....X...X.
-......................
 """
     , StaticMarkdown """
 To get some practice with these “typed hints” here are some more levels:
@@ -100,7 +99,7 @@ To get some practice with these “typed hints” here are some more levels:
 **TODO:** These levels belong in one tabbed container with only one visible at a time.
 Puzzle nr. 4 (The mask puzzle) requires a visible remaining mines counter.
 """
-    , puzzleGroup Medium [ """
+    , puzzleGroup 6 [ """
 ....o+....
 ..o+..oc..
 x...o+..x.
@@ -155,7 +154,7 @@ Empty space does not break connectedness **on lines**.
 When you click on a line hint it will display an overlay to help you figure out
 which cells are on the line. This is particularly useful for large levels.
 """
-    , puzzleInline Medium """
+    , puzzleInline 6 """
 \\+......\\n......\\c..........
 ..O...|+..O+../+..O+........
 ....X.......Oc......X.......
@@ -165,7 +164,7 @@ which cells are on the line. This is particularly useful for large levels.
     , StaticMarkdown """
 Pratice makes perfect, take these levels for a spin.
 """
-    , puzzleGroup Large [ """
+    , puzzleGroup 10 [ """
 ..|n......|c
 ............
 ..x...o...o+
@@ -209,7 +208,7 @@ extra layer. Sounds complicated? Click on a flower to see where it counts mines.
 (Note that the flower itself does not count towards the total.)
 
 """
-    , puzzleGroup Large [ """
+    , puzzleGroup 10 [ """
 ..........o+..........
 ....X...x...o+..x.....
 ..o+......on......o+..
