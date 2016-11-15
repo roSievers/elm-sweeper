@@ -9,6 +9,7 @@ in the game. It contains playable examples to teach mechanics.
 
 import Html exposing (Html, div, text, p, a, button)
 import Html.Events exposing (onClick)
+import Html.Attributes exposing (href)
 import Types exposing (..)
 import Literate exposing (Segment(..))
 import Components
@@ -45,7 +46,7 @@ The number tells you how many of the adjacent hexes contain mines.
     , StaticHtml
         (p []
             [ text "You can also "
-            , a [ onClick FlipControlls ] [ text "exchange the buttons" ]
+            , a [ onClick FlipControlls, href "#" ] [ text "exchange the buttons" ]
             , text " if you prefer it the other way round."
             ]
         )
@@ -68,17 +69,53 @@ x...o+........O+..o+..
 """
     , StaticMarkdown """
 If this is your first time playing a puzzle like this here are a few easy levels
-to get you started. Skip ahead if you feel comfortable already.
-
-**TODO:** Embed several levels in here. With some GUI (Mistakes, Mines left)
-This might also be a good place to introduce the total count as a mechanic."""
-    , puzzleInline 5 """
+to get you started. If you get stuck, maybe the “Mines left” counter can help you.
+Feel free to skip ahead if you feel comfortable already."""
+    , puzzleGroup 7 [ """
+....x...x.........
+..o+..o+..x.......
+O+................
+......O+..O+......
+................x.
+......o+..o+..o+..
+........x...O+....
+""", """
 ....X.
 ..o+..o+
 O+..O+..O+
 ..x...x.
 x...o+..x.
-"""
+""","""
+......x...
+....x.....
+..O+..O+..
+x...x...o+
+..x...o+..
+....O+....
+......x...""","""
+O+..O+..
+..x...o+
+o+..x...
+..O+....
+....x...
+..x.....""","""
+....o+....
+..O+..O+..
+x...o+..o+
+..x...x...
+....o+....
+..O+..O+..""","""
+..........O+..
+........x...o+
+......o+......
+....O+..o+..o+
+..o+......o+..
+x...x...O+..o+
+......x.......
+O+..o+..o+..O+
+..o+......x...
+....x...o+....
+..O+..O+......"""]
     , StaticMarkdown """
 # Connected and Disconnected Neighborhoods
 
@@ -94,11 +131,7 @@ X...X...X...X.....On..
 ..X.......O+....X...X.
 """
     , StaticMarkdown """
-To get some practice with these “typed hints” here are some more levels:
-
-**TODO:** These levels belong in one tabbed container with only one visible at a time.
-Puzzle nr. 4 (The mask puzzle) requires a visible remaining mines counter.
-"""
+To get some practice with these “typed hints” here are some more levels:"""
     , puzzleGroup 6 [ """
 ....o+....
 ..o+..oc..
