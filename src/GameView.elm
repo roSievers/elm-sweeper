@@ -9,14 +9,12 @@ module GameView
 {-| This module mixes Html and Svg. It would be nice it that was split up. -}
 
 import Html exposing (Html, div, text)
-import Html.App as Html
 import Html.Events
 import Html.Attributes
 import Svg exposing (Svg, svg, rect)
 import Svg.Attributes exposing (..)
 import Svg.Events
 import String
-import Basics.Extra exposing (never)
 import Json.Decode
 import Grid exposing (Grid, Direction(..), Coordinate)
 import Types exposing (..)
@@ -383,7 +381,7 @@ withCaption coordinate hexClass enabled caption =
 
 centeredCaption : String -> Svg msg
 centeredCaption caption =
-    Svg.text'
+    Svg.text_
         [ Svg.Attributes.style "text-anchor:middle;font-size:0.8;pointer-events:none;"
         , dominantBaseline "central"
         ]
@@ -392,7 +390,7 @@ centeredCaption caption =
 
 bottomCaption : String -> Svg msg
 bottomCaption caption =
-    Svg.text'
+    Svg.text_
         [ Svg.Attributes.style "text-anchor:middle;font-size:0.4;"
         , Svg.Attributes.y "0.75"
         ]

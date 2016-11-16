@@ -54,12 +54,10 @@ mixed with snippets of source code. Here puzzles take the place of the code.
 -}
 
 import Html exposing (Html, div, text)
-import Html.App
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Markdown
 import List.Extra as List
-import Basics.Extra exposing (never)
 
 
 {-| Encodes a LiteratePuzzle.
@@ -250,7 +248,7 @@ segmentToHtml render config index segment =
 
         Interactive example ->
             render.example config example
-                |> Html.App.map (ExampleMsg (Flat index) >> render.tagMsg)
+                |> Html.map (ExampleMsg (Flat index) >> render.tagMsg)
 
         Tabbed examples activeSubindex ->
             div []
@@ -304,7 +302,7 @@ nestedExampleToHtml render config index1 index2 example =
         , onClick (render.tagMsg (TabChange index1 index2))
         ]
         [ render.preview config example
-            |> Html.App.map never
+            |> Html.map never
         ]
 
 
@@ -316,7 +314,7 @@ activeExample render config index activeSubindex examples =
         case maybeExample of
             Just example ->
                 render.example config example
-                    |> Html.App.map (ExampleMsg (Nested index activeSubindex) >> render.tagMsg)
+                    |> Html.map (ExampleMsg (Nested index activeSubindex) >> render.tagMsg)
 
             Nothing ->
                 div [] [ text "A nonexistent tab is active. This should be impossible." ]

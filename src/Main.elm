@@ -1,7 +1,6 @@
 module Main exposing (..)
 
 import Html exposing (Html, div, text, button, br, textarea, h1, p, a)
-import Html.App
 import Html.Events exposing (onClick, onInput)
 import Html.Attributes exposing (placeholder, value, href)
 import Return exposing (Return)
@@ -28,7 +27,7 @@ import Components
 
 
 main =
-    Html.App.program
+    Html.program
         { init = init
         , view = view
         , update = update

@@ -5,7 +5,6 @@ module Fullscreen
 
 import GameView exposing (viewLevel, previewLevel, statsText, intentDisplay)
 import Html exposing (Html, div, text, br)
-import Html.App as Html
 import Html.Events
 import Html.Attributes exposing (class)
 import Types exposing (..)

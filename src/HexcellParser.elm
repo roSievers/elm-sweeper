@@ -8,24 +8,33 @@ import Types exposing (..)
 import Cell exposing (Cell, reveal)
 import Combine exposing (..)
 import Combine.Char exposing (newline)
-import Combine.Infix exposing (..)
 import List.Extra as List
 
 
 parseLevel : String -> Result (List String) Level
 parseLevel inputString =
     parse
-        (versionStatement
-            *> (Level <$> readline <*> readline <*> comments <*> cellGrid <* end)
-        )
+        level
         inputString
-        |> \(result, _) -> result
+        |> simplifyParseResult
+
+
+level : Parser () Level
+level =
+    (versionStatement
+        --*> (Level <$> readline <*> readline <*> comments <*> cellGrid <* end)
+        *> ((((Level <$> readline) <*> readline) <*> comments) <*> cellGrid <* end)
+    )
+
+simplifyParseResult =
+    Result.mapError (\( _, _, e ) -> e)
+        >> Result.map (\( _, _, l ) -> l)
 
 
 parseCellGrid : String -> Result (List String) (Grid Cell)
 parseCellGrid inputString =
     parse (many newline *> cellGrid <* end) inputString
-      |> \(result, _) -> result
+        |> simplifyParseResult
 
 
 versionStatement =
@@ -41,61 +50,61 @@ comments =
         |> Combine.map (List.filter (\comment -> comment /= ""))
 
 
-emptyCell : Parser Cell
+emptyCell : Parser () Cell
 emptyCell =
     or
         (Cell.empty <$ string "o.")
         (reveal Cell.empty <$ string "O.")
 
 
-countCell : Parser Cell
+countCell : Parser () Cell
 countCell =
     or
         (Cell.count <$ string "o+")
         (reveal Cell.count <$ string "O+")
 
 
-typedCountCell : Parser Cell
+typedCountCell : Parser () Cell
 typedCountCell =
     or
         (Cell.typedCount <$ (string "oc" <|> string "on"))
         (reveal Cell.typedCount <$ (string "Oc" <|> string "On"))
 
 
-mineCell : Parser Cell
+mineCell : Parser () Cell
 mineCell =
     or
         (Cell.mine <$ string "x.")
         (reveal Cell.mine <$ string "X.")
 
 
-flowerCell : Parser Cell
+flowerCell : Parser () Cell
 flowerCell =
     or
         (Cell.flower <$ string "x+")
         (reveal Cell.flower <$ string "X+")
 
 
-rowCount : Parser Cell
+rowCount : Parser () Cell
 rowCount =
     (Cell.rowCount DownLeft <$ string "/+")
         <|> (Cell.rowCount Down <$ string "|+")
         <|> (Cell.rowCount DownRight <$ string "\\+")
 
 
-typedRowCount : Parser Cell
+typedRowCount : Parser () Cell
 typedRowCount =
     (Cell.typedRowCount DownLeft <$ (string "/c" <|> string "/n"))
         <|> (Cell.typedRowCount Down <$ (string "|c" <|> string "|n"))
         <|> (Cell.typedRowCount DownRight <$ (string "\\c" <|> string "\\n"))
 
 
-nothing : Parser (Maybe a)
+nothing : Parser () (Maybe a)
 nothing =
     Nothing <$ string ".."
 
 
-cell : Parser (Maybe Cell)
+cell : Parser () (Maybe Cell)
 cell =
     choice
         [ emptyCell
@@ -110,12 +119,12 @@ cell =
         |> or nothing
 
 
-cellRow : Parser (List (Maybe Cell))
+cellRow : Parser () (List (Maybe Cell))
 cellRow =
     many1 cell
 
 
-cellGrid : Parser (Grid Cell)
+cellGrid : Parser () (Grid Cell)
 cellGrid =
     createIndices <$> sepEndBy newline cellRow
 
