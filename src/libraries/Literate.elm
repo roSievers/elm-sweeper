@@ -9,6 +9,7 @@ module Literate
         , noPreview
         , toHtml
         , Msg
+        , EitherMsg(..)
         )
 
 {-| A library to write tutorials with interactive examples mixed in.
@@ -99,10 +100,15 @@ type Msg exampleMsg
     | ExampleMsg Index exampleMsg
 
 
+type EitherMsg exampleMsg msg
+    = Internal exampleMsg
+    | External msg
+
+
 {-| Specify how examples are rendered and messages are treated.
 -}
 type alias RenderConfig config example exampleMsg msg =
-    { example : config -> example -> Html exampleMsg
+    { example : config -> example -> Html (EitherMsg exampleMsg msg)
     , preview : config -> example -> Html Never
     , tagMsg : Msg exampleMsg -> msg
     }
@@ -232,6 +238,17 @@ toHtml render config puzzle =
         ]
 
 
+transformExampleMsg : (Msg exampleMsg -> msg) -> Index -> EitherMsg exampleMsg msg -> msg
+transformExampleMsg tagMsg index message =
+    case message of
+        Internal exampleMsg ->
+            ExampleMsg index exampleMsg
+                |> tagMsg
+
+        External msg ->
+            msg
+
+
 segmentToHtml :
     RenderConfig config example exampleMsg msg
     -> config
@@ -248,7 +265,7 @@ segmentToHtml render config index segment =
 
         Interactive example ->
             render.example config example
-                |> Html.map (ExampleMsg (Flat index) >> render.tagMsg)
+                |> Html.map (transformExampleMsg render.tagMsg (Flat index))
 
         Tabbed examples activeSubindex ->
             div []
@@ -314,7 +331,7 @@ activeExample render config index activeSubindex examples =
         case maybeExample of
             Just example ->
                 render.example config example
-                    |> Html.map (ExampleMsg (Nested index activeSubindex) >> render.tagMsg)
+                    |> Html.map (transformExampleMsg render.tagMsg (Nested index activeSubindex))
 
             Nothing ->
                 div [] [ text "A nonexistent tab is active. This should be impossible." ]

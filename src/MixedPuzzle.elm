@@ -47,7 +47,7 @@ emSize height =
         style [ ( "height", toString h ++ "em" ) ]
 
 
-renderExample : Config -> Example -> Html GameAction
+renderExample : Config -> Example -> Html (Literate.EitherMsg GameAction Msg)
 renderExample config example =
     case example of
         Plain data ->
@@ -63,7 +63,7 @@ renderExample config example =
                 ]
 
 
-withUI : Config -> ExampleData -> Html GameAction
+withUI : Config -> ExampleData -> Html (Literate.EitherMsg GameAction Msg)
 withUI config data =
     let
         ( mineText, mistakeText ) =
@@ -78,10 +78,11 @@ withUI config data =
             ]
 
 
-withoutUI : Config -> ExampleData -> Html GameAction
+withoutUI : Config -> ExampleData -> Html (Literate.EitherMsg GameAction Msg)
 withoutUI config data =
     div [ emSize data.height ]
         [ GameView.viewLevel "" "inline-grid" data.game.level.content ]
+          |> Html.map Literate.Internal
 
 
 renderPreview : Config -> Example -> Html msg
