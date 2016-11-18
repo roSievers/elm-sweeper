@@ -13,28 +13,26 @@ import List.Extra as List
 
 parseLevel : String -> Result (List String) Level
 parseLevel inputString =
-    parse
-        level
-        inputString
+    parse level inputString
         |> simplifyParseResult
 
 
 level : Parser () Level
 level =
     (versionStatement
-        --*> (Level <$> readline <*> readline <*> comments <*> cellGrid <* end)
-        *> ((((Level <$> readline) <*> readline) <*> comments) <*> cellGrid <* end)
+        *> (Level <$> readline <*> readline <*> comments <*> cellGrid <* end)
     )
-
-simplifyParseResult =
-    Result.mapError (\( _, _, e ) -> e)
-        >> Result.map (\( _, _, l ) -> l)
 
 
 parseCellGrid : String -> Result (List String) (Grid Cell)
 parseCellGrid inputString =
     parse (many newline *> cellGrid <* end) inputString
         |> simplifyParseResult
+
+
+simplifyParseResult =
+    Result.mapError (\( _, _, e ) -> e)
+        >> Result.map (\( _, _, l ) -> l)
 
 
 versionStatement =
