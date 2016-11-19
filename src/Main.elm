@@ -15,7 +15,7 @@ import Fullscreen
 import Tutorial exposing (tutorial)
 import MixedPuzzle exposing (MixedPuzzle)
 import Monocle.Lens as Lens exposing (Lens)
-import Monocle.Optional as Optional
+import Monocle.Optional as Optional exposing (Optional)
 import Monocle.Common exposing ((=>))
 import Components
 import PasteBox exposing (PasteBox)
@@ -41,21 +41,10 @@ main =
 
 type alias Model =
     { route : Route
-    , currentGame : GameModel
     , tutorial : MixedPuzzle
     , pasteBox : PasteBox
     , config : Config
     }
-
-
-gameModel : Lens Model GameModel
-gameModel =
-    Lens (.currentGame) (\gModel model -> { model | currentGame = gModel })
-
-
-gameLevel : Lens GameModel Level
-gameLevel =
-    Lens (.level) (\newLevel model -> { model | level = newLevel })
 
 
 config : Lens Model Config
@@ -73,11 +62,25 @@ tabletMode =
     Lens (.tabletMode) (\newState config -> { config | tabletMode = newState })
 
 
+fullscreenRoute : Optional Model Fullscreen
+fullscreenRoute =
+    { getOption =
+        (\model ->
+            case model.route of
+                FullscreenView fullscreen ->
+                    Just fullscreen
+
+                _ ->
+                    Nothing
+        )
+    , set = (\newFullscreen model -> { model | route = FullscreenView newFullscreen })
+    }
+
+
 init : Return msg Model
 init =
     Return.singleton
         { route = MainMenu
-        , currentGame = initExampleGame
         , tutorial = Tutorial.tutorial
         , pasteBox = PasteBox.init
         , config =
@@ -101,10 +104,10 @@ initExampleGame =
 update : Msg -> Model -> Return msg Model
 update action model =
     case action of
-        GameMsg gameAction ->
+        FullscreenMsg gameAction ->
             model
-                |> Lens.modify gameModel
-                    (Game.update model.config gameAction)
+                |> Optional.modify fullscreenRoute
+                    (Fullscreen.update model.config gameAction)
                 |> Return.singleton
 
         TutorialMsg literateMsg ->
@@ -128,11 +131,6 @@ update action model =
             Return.singleton
                 { model | pasteBox = PasteBox.update model.config msg model.pasteBox }
 
-        NewLevel level ->
-            model
-                |> .set (gameModel >>> gameLevel) level
-                |> Return.singleton
-
 
 
 -- SUBSCRIPTIONS
@@ -150,8 +148,8 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     case model.route of
-        InGame ->
-            Fullscreen.fullscreen model.config model.currentGame
+        FullscreenView fullscreen ->
+            Fullscreen.view model.config fullscreen
 
         MainMenu ->
             mainMenuView model
@@ -171,8 +169,13 @@ mainMenuView model =
             ]
         , Components.blockContainer
             [ Components.flatButton (SetRoute Tutorial) "Tutorial"
-            , Components.flatButton (SetRoute InGame) "Current Game"
+            , Components.flatButton (SetRoute (FullscreenView exampleFullscreen)) "ExampleFullscreen"
             , Components.flatButton FlipTabletMode "Swich Tablet Mode"
             ]
         , PasteBox.view model.config model.pasteBox
         ]
+
+
+exampleFullscreen : Fullscreen
+exampleFullscreen =
+    Fullscreen initExampleGame (\_ -> SetRoute MainMenu)

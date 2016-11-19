@@ -1,6 +1,7 @@
 module Fullscreen
     exposing
-        ( fullscreen
+        ( view
+        , update
         )
 
 import GameView exposing (viewLevel, previewLevel, statsText, intentDisplay)
@@ -9,18 +10,26 @@ import Html.Events
 import Html.Attributes exposing (class)
 import Types exposing (..)
 import Components
+import Game
 
 
-fullscreen : Config -> GameModel -> Html Msg
-fullscreen config model =
+update : Config -> GameAction -> Fullscreen -> Fullscreen
+update config action fullscreen =
+    { fullscreen
+        | gameModel = Game.update config action fullscreen.gameModel
+    }
+
+
+view : Config -> Fullscreen -> Html Msg
+view config model =
     div []
         [ flexibleMainContent
-            (viewLevel "levelView" "" model.level.content
-                |> Html.map GameMsg
+            (viewLevel "levelView" "" model.gameModel.level.content
+                |> Html.map FullscreenMsg
             )
-            (comment model.level.comments)
-            (sidebar config model)
-        , attribution model.level
+            (comment model.gameModel.level.comments)
+            (sidebar config model.gameModel)
+        , attribution model.gameModel.level
         ]
 
 
@@ -41,16 +50,16 @@ sidebar config model =
         ( mineText, mistakeText ) =
             statsText model
     in
-      [ Just (Components.flatLabel mineText)
-      , Just (Components.flatLabel mistakeText)
-      , Just (Components.flatButton (SetRoute MainMenu) "Menu")
-      , if config.tabletMode then
-          Just (intentDisplay config.flippedControlls)
-        else
-          Nothing
-      ]
-          |> List.filterMap identity
-          |> div []
+        [ Just (Components.flatLabel mineText)
+        , Just (Components.flatLabel mistakeText)
+        , Just (Components.flatButton (SetRoute MainMenu) "Menu")
+        , if config.tabletMode then
+            Just (intentDisplay config.flippedControlls)
+          else
+            Nothing
+        ]
+            |> List.filterMap identity
+            |> div []
 
 
 attribution : Level -> Html msg

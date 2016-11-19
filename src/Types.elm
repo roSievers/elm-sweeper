@@ -26,9 +26,27 @@ type alias GameModel =
     }
 
 
+{-| The Fullscreen view can't close itself for two reasons:
+
+  * It has no access to the parent `Model`
+  * It doesn't know where it came from
+
+Instead, it uses fires the `ClosingAction` provided to it which wraps the
+`GameModel` in a message.
+-}
+type alias ClosingAction =
+    GameModel -> Msg
+
+
+type alias Fullscreen =
+    { gameModel : GameModel
+    , onClose : ClosingAction
+    }
+
+
 type Route
     = MainMenu
-    | InGame
+    | FullscreenView Fullscreen
     | Tutorial
 
 type alias Config =
@@ -40,13 +58,12 @@ type alias Config =
 
 
 type Msg
-    = GameMsg GameAction
+    = FullscreenMsg GameAction
     | TutorialMsg (Literate.Msg GameAction)
     | FlipControlls
     | FlipTabletMode
     | SetRoute Route
     | PasteBoxMsg PasteBoxAction
-    | NewLevel Level
 
 
 type GameAction
