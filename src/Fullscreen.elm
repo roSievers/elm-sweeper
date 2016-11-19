@@ -28,7 +28,7 @@ view config model =
                 |> Html.map FullscreenMsg
             )
             (comment model.gameModel.level.comments)
-            (sidebar config model.gameModel)
+            (sidebar config model)
         , attribution model.gameModel.level
         ]
 
@@ -44,15 +44,15 @@ flexibleMainContent mainContent footer sidebar =
         ]
 
 
-sidebar : Config -> GameModel -> Html Msg
-sidebar config model =
+sidebar : Config -> Fullscreen -> Html Msg
+sidebar config fullscreen =
     let
         ( mineText, mistakeText ) =
-            statsText model
+            statsText fullscreen.gameModel
     in
         [ Just (Components.flatLabel mineText)
         , Just (Components.flatLabel mistakeText)
-        , Just (Components.flatButton (SetRoute MainMenu) "Menu")
+        , Just (Components.flatButton (fullscreen.onClose fullscreen.gameModel) "Close Fullscreen")
         , if config.tabletMode then
             Just (intentDisplay config.flippedControlls)
           else

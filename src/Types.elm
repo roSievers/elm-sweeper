@@ -64,6 +64,7 @@ type Msg
     | FlipTabletMode
     | SetRoute Route
     | PasteBoxMsg PasteBoxAction
+    | MultiMessage Msg Msg
 
 
 type GameAction
@@ -75,3 +76,4 @@ type GameAction
 type PasteBoxAction
     = PasteBoxEdit String
     | UserLevelMsg GameAction
+    | PasteBoxFullscreenReturn GameModel

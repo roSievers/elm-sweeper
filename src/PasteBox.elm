@@ -52,6 +52,9 @@ update config action pasteBox =
                 anythingElse ->
                     anythingElse
 
+        PasteBoxFullscreenReturn gameModel ->
+            LevelLoaded gameModel
+
 
 view : Config -> PasteBox -> Html Msg
 view config pasteBox =
@@ -73,7 +76,6 @@ view config pasteBox =
         LevelLoaded gameModel ->
             div []
                 [ levelPreview config gameModel
-                    |> Html.map (UserLevelMsg >> PasteBoxMsg)
                 , clearButton
                 ]
 
@@ -112,7 +114,7 @@ clearButton =
     button [ onClick (PasteBoxEdit "" |> PasteBoxMsg) ] [ text "Clear Level" ]
 
 
-levelPreview : Config -> GameModel -> Html GameAction
+levelPreview : Config -> GameModel -> Html Msg
 levelPreview config gameModel =
     let
         ( mineText, mistakeText ) =
@@ -122,7 +124,25 @@ levelPreview config gameModel =
             [ Components.blockContainer
                 [ Components.flatLabel mineText
                 , Components.flatLabel mistakeText
+                , Components.flatButton (goFullscreen gameModel) "Fullscreen"
                 ]
             , div [ style [ ( "height", "27em" ) ] ]
                 [ GameView.viewLevel "" "inline-grid" gameModel.level.content ]
+                |> Html.map (UserLevelMsg >> PasteBoxMsg)
             ]
+
+
+goFullscreen : GameModel -> Msg
+goFullscreen gameModel =
+    let
+        onClose newGameModel =
+            MultiMessage
+                (SetRoute MainMenu)
+                (PasteBoxMsg (PasteBoxFullscreenReturn newGameModel))
+
+        fullscreen =
+            { gameModel = gameModel
+            , onClose = (\newGameModel -> onClose newGameModel)
+            }
+    in
+        SetRoute (FullscreenView fullscreen)

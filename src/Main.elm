@@ -131,6 +131,10 @@ update action model =
             Return.singleton
                 { model | pasteBox = PasteBox.update model.config msg model.pasteBox }
 
+        MultiMessage msg1 msg2 ->
+            update msg1 model
+              |> Return.andThen (update msg2)
+
 
 
 -- SUBSCRIPTIONS
@@ -169,13 +173,7 @@ mainMenuView model =
             ]
         , Components.blockContainer
             [ Components.flatButton (SetRoute Tutorial) "Tutorial"
-            , Components.flatButton (SetRoute (FullscreenView exampleFullscreen)) "ExampleFullscreen"
             , Components.flatButton FlipTabletMode "Swich Tablet Mode"
             ]
         , PasteBox.view model.config model.pasteBox
         ]
-
-
-exampleFullscreen : Fullscreen
-exampleFullscreen =
-    Fullscreen initExampleGame (\_ -> SetRoute MainMenu)
