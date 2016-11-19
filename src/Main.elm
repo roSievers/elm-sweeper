@@ -17,8 +17,8 @@ import MixedPuzzle exposing (MixedPuzzle)
 import Monocle.Lens as Lens exposing (Lens)
 import Monocle.Optional as Optional
 import Monocle.Common exposing ((=>))
-import HexcellParser
 import Components
+import PasteBox exposing (PasteBox)
 
 
 (>>>) : Lens a b -> Lens b c -> Lens a c
@@ -43,7 +43,7 @@ type alias Model =
     { route : Route
     , currentGame : GameModel
     , tutorial : MixedPuzzle
-    , pasteBox : String
+    , pasteBox : PasteBox
     , config : Config
     }
 
@@ -79,7 +79,7 @@ init =
         { route = MainMenu
         , currentGame = initExampleGame
         , tutorial = Tutorial.tutorial
-        , pasteBox = ""
+        , pasteBox = PasteBox.init
         , config =
             { flippedControlls = True
             , tabletMode = False
@@ -104,7 +104,7 @@ update action model =
         GameMsg gameAction ->
             model
                 |> Lens.modify gameModel
-                    (Game.updateGame model.config gameAction)
+                    (Game.update model.config gameAction)
                 |> Return.singleton
 
         TutorialMsg literateMsg ->
@@ -124,8 +124,9 @@ update action model =
         SetRoute route ->
             Return.singleton { model | route = route }
 
-        PasteBoxEdit newPaste ->
-            Return.singleton { model | pasteBox = newPaste }
+        PasteBoxMsg msg ->
+            Return.singleton
+                { model | pasteBox = PasteBox.update model.config msg model.pasteBox }
 
         NewLevel level ->
             model
@@ -173,38 +174,5 @@ mainMenuView model =
             , Components.flatButton (SetRoute InGame) "Current Game"
             , Components.flatButton FlipTabletMode "Swich Tablet Mode"
             ]
-        , p []
-            [ text "Community made levels are collected on "
-            , a [ href "https://www.reddit.com/r/hexcellslevels/" ] [ text "/r/hexcellslevels" ]
-            , text "."
-            ]
-        , textarea
-            [ placeholder "Paste a Hexcells level file!"
-            , onInput PasteBoxEdit
-            , value model.pasteBox
-            , Html.Attributes.id "paste-box"
-            ]
-            []
-        , parsedResultView (HexcellParser.parseLevel model.pasteBox)
+        , PasteBox.view model.config model.pasteBox
         ]
-
-
-parsedResultView : Result (List String) Level -> Html Msg
-parsedResultView parseResult =
-    case parseResult of
-        Err errorMessage ->
-            p []
-                [ text "This doesn't look like a valid Hexcells level. Maybe the error message helps?"
-                , br [] []
-                , text (toString errorMessage)
-                ]
-
-        Ok level ->
-            div []
-                [ text "Parsing successful!"
-                , text <| "Author: " ++ level.author
-                , text <| "Title: " ++ level.title
-                , GameView.previewLevel "levelPreview" level.content
-                , br [] []
-                , Components.flatButton (NewLevel level) "Load Level"
-                ]

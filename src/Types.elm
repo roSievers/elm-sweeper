@@ -45,7 +45,7 @@ type Msg
     | FlipControlls
     | FlipTabletMode
     | SetRoute Route
-    | PasteBoxEdit String
+    | PasteBoxMsg PasteBoxAction
     | NewLevel Level
 
 
@@ -53,3 +53,8 @@ type GameAction
     = Reveal MouseButton Coordinate
     | ToggleOverlay Coordinate Bool
     | ToggleEnabled Coordinate Bool
+
+
+type PasteBoxAction
+    = PasteBoxEdit String
+    | UserLevelMsg GameAction

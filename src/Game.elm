@@ -1,4 +1,4 @@
-module Game exposing (updateGame)
+module Game exposing (update)
 
 
 import Types exposing (..)
@@ -22,8 +22,8 @@ gameGrid =
     Lens (.content) (\newGrid model -> {model | content = newGrid})
 
 
-updateGame : Config -> GameAction -> GameModel -> GameModel
-updateGame config action model =
+update : Config -> GameAction -> GameModel -> GameModel
+update config action model =
     case action of
       Reveal button coordinate ->
           handleReveal config.flippedControlls button coordinate model

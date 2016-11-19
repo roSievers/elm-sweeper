@@ -112,7 +112,7 @@ updateExample config action example =
         Plain data ->
             Plain
                 (Lens.modify game
-                    (Game.updateGame config action)
+                    (Game.update config action)
                     data
                 )
 
