@@ -1,7 +1,6 @@
 module MixedPuzzle
     exposing
         ( MixedPuzzle
-        , Example
         , update
         , puzzleInline
         , puzzleGroup
@@ -10,6 +9,7 @@ module MixedPuzzle
 
 import Html exposing (Html, div, text, p, a)
 import Html.Attributes exposing (style, class)
+import Html.Events exposing (onClick)
 import Types exposing (..)
 import HexcellParser
 import GameView
@@ -18,24 +18,22 @@ import Cell exposing (Cell)
 import Game
 import Dict exposing (Dict)
 import Monocle.Lens as Lens exposing (Lens)
-import Literate exposing (LiteratePuzzle, Segment(..), RenderConfig)
+import Literate exposing (LiteratePuzzle, Segment(..))
 import Components
+import List.Extra as List
+import Pivot exposing (Pivot)
 
 
 type alias MixedPuzzle =
     LiteratePuzzle Config Example Msg
 
 
-type alias ExampleData =
-    { game : GameModel
-    , height : Int
-    , displayInformation : Bool
-    }
 
-
-type Example
-    = Plain ExampleData
-    | LoadError String
+{- type alias ExampleData =
+   { game : GameModel
+   , height : Int
+   , displayInformation : Bool
+-}
 
 
 emSize : Int -> Html.Attribute msg
@@ -47,14 +45,18 @@ emSize height =
         style [ ( "height", toString h ++ "em" ) ]
 
 
-renderExample : Config -> Example -> Html (Literate.EitherMsg GameAction Msg)
-renderExample config example =
+renderExample : Config -> Literate.Index -> Example -> Html Msg
+renderExample config index example =
     case example of
-        Plain data ->
-            if data.displayInformation then
-                withUI config data
-            else
-                withoutUI config data
+        Plain height gameModel ->
+            withoutUI config index height gameModel
+                |> Html.map MixedPuzzleMsg
+
+        Tabbed height content ->
+            div []
+              [ tabHeader config index content
+              , withUI config index height (Pivot.getPivot content)
+              ]
 
         LoadError errorMessage ->
             p []
@@ -63,61 +65,88 @@ renderExample config example =
                 ]
 
 
-withUI : Config -> ExampleData -> Html (Literate.EitherMsg GameAction Msg)
-withUI config data =
+withUI : Config -> Int -> Int -> GameModel -> Html Msg
+withUI config index height gameModel =
     let
         ( mineText, mistakeText ) =
-            GameView.statsText data.game
+            GameView.statsText gameModel
     in
         div []
             [ Components.blockContainer
                 [ Components.flatLabel mineText
                 , Components.flatLabel mistakeText
+                , Components.flatButton (goFullscreen gameModel) "Fullscreen"
                 ]
-            , withoutUI config data
+            , withoutUI config index height gameModel
+                |> Html.map MixedPuzzleMsg
             ]
 
 
-withoutUI : Config -> ExampleData -> Html (Literate.EitherMsg GameAction Msg)
-withoutUI config data =
-    div [ emSize data.height ]
-        [ GameView.viewLevel "" "inline-grid" data.game.level.content ]
-          |> Html.map Literate.Internal
+withoutUI : Config -> Int -> Int -> GameModel -> Html (Literate.Msg e MixedPuzzleAction)
+withoutUI config index height gameModel =
+    div [ emSize height ]
+        [ GameView.viewLevel "" "inline-grid" gameModel.level.content ]
+        |> Html.map (PuzzleMsg >> Literate.tagMsg index)
 
 
-renderPreview : Config -> Example -> Html msg
-renderPreview _ example =
-    case example of
-        Plain data ->
-            GameView.previewLevel "" data.game.level.content
+goFullscreen : GameModel -> Msg
+goFullscreen gameModel =
+    let
+        onClose newGameModel =
+            MultiMessage
+                (SetRoute Tutorial)
+                (PasteBoxMsg (PasteBoxFullscreenReturn newGameModel))
 
-        LoadError errorMessage ->
-            p []
-                [ text "An error occured: "
-                , text errorMessage
-                ]
-
-
-renderConfig : RenderConfig Config Example GameAction Msg
-renderConfig =
-    { example = renderExample
-    , preview = renderPreview
-    , tagMsg = TutorialMsg
-    }
+        fullscreen =
+            { gameModel = gameModel
+            , onClose = (\newGameModel -> onClose newGameModel)
+            }
+    in
+        SetRoute (FullscreenView fullscreen)
 
 
-updateExample : Config -> GameAction -> Example -> Example
+renderPreview : Config -> GameModel -> Html msg
+renderPreview _ gameModel =
+    GameView.previewLevel "" gameModel.level.content
+
+
+updateExample : Config -> MixedPuzzleAction -> Example -> Example
 updateExample config action example =
-    case example of
-        Plain data ->
-            Plain
-                (Lens.modify game
-                    (Game.update config action)
-                    data
-                )
+    case action of
+        PuzzleMsg gameAction ->
+            updateGameContent config gameAction example
 
-        (LoadError _) as error ->
-            error
+        TabChange subIndex ->
+            updateActiveTab subIndex example
+
+
+updateGameContent : Config -> GameAction -> Example -> Example
+updateGameContent config action example =
+    case example of
+        Plain height gameModel ->
+            Plain height
+                (Game.update config action gameModel)
+
+        Tabbed height content ->
+            Lens.modify Pivot.pivot
+              (Game.update config action)
+              content
+              |> Tabbed height
+
+        anythingElse ->
+            anythingElse
+
+
+updateActiveTab : Int -> Example -> Example
+updateActiveTab subIndex example =
+    case Debug.log "example" example of
+        Tabbed height content ->
+            Pivot.setIndex subIndex content
+              |> Maybe.withDefault content
+              |> Tabbed height
+
+        anythingElse ->
+            anythingElse
 
 
 game : Lens { a | game : GameModel } GameModel
@@ -159,7 +188,7 @@ initGameModel grid =
     }
 
 
-update : Config -> Literate.Msg GameAction -> MixedPuzzle -> MixedPuzzle
+update : Config -> Literate.Msg Example MixedPuzzleAction -> MixedPuzzle -> MixedPuzzle
 update config message model =
     Literate.update
         message
@@ -169,28 +198,126 @@ update config message model =
 
 toHtml : Config -> MixedPuzzle -> Html Msg
 toHtml config model =
-    Literate.toHtml renderConfig config model
+    Literate.toHtml (renderExample config) config model
 
 
-toExample : (GameModel -> ExampleData) -> String -> Example
-toExample wrapSuccess data =
-    case HexcellParser.parseCellGrid data of
-        Ok grid ->
-            grid
-              |> initGameModel
-              |> wrapSuccess
-              |> Plain
+stripResult : Result a a -> a
+stripResult result =
+    case result of
+        Ok a ->
+            a
 
-        Err errorMessages ->
-            LoadError (toString errorMessages)
+        Err a ->
+            a
 
 
 puzzleInline : Int -> String -> Segment config Example msg
 puzzleInline height data =
-    InlineExample (toExample (\model -> ExampleData model height False ) data)
+    HexcellParser.parseCellGrid data
+        |> Result.map (\grid -> Plain height (initGameModel grid))
+        |> Result.mapError (\errorMessages -> LoadError (toString errorMessages))
+        |> stripResult
+        |> InlineExample
+
+
+maybeCombine : List (Maybe a) -> Maybe (List a)
+maybeCombine =
+    let
+        step e acc =
+            case e of
+                Nothing ->
+                    Nothing
+
+                Just x ->
+                    Maybe.map ((::) x) acc
+    in
+        List.foldr step (Just [])
 
 
 puzzleGroup : Int -> List String -> Segment config Example msg
-puzzleGroup height levels =
-    List.map (toExample (\model -> ExampleData model height True )) levels
-        |> TabbedExample
+puzzleGroup height data =
+    let
+        parsing =
+            HexcellParser.parseCellGrid
+                >> Result.toMaybe
+                >> Maybe.map initGameModel
+    in
+        List.map parsing data
+            |> maybeCombine
+            |> Maybe.andThen Pivot.fromList
+            |> Maybe.map (Tabbed height)
+            |> Maybe.withDefault (LoadError "At least one level isn't valid.")
+            |> InlineExample
+
+
+
+{- Things pushed in here by the literate refactor -}
+
+
+
+
+--    TabChange index subindex ->
+--        List.updateAt index (updateActiveTab subindex) puzzle
+--            |> Maybe.withDefault puzzle
+
+
+tabHeaderSpacing : List (Html msg) -> Html msg
+tabHeaderSpacing tabs =
+    let
+        length =
+            List.length tabs
+
+        tabsPerLine =
+            if length <= 6 then
+                length
+            else
+                6
+
+        tabWidth =
+            if length > 0 then
+                100 / toFloat tabsPerLine
+            else
+                100
+
+        wrapTab tab =
+            div
+                [ style
+                    [ ( "width", toString tabWidth ++ "%" )
+                    , ( "display", "inline-flex" )
+                    ]
+                ]
+                [ tab ]
+    in
+        div
+            [ style [ ( "width", "100%" ), ( "flex-direction", "row" ) ]
+            ]
+            (List.map wrapTab tabs)
+
+
+tab : Config -> Int -> GameModel -> Html MixedPuzzleAction
+tab config subIndex gameModel =
+    div
+        [ style
+            [ ( "width", "100%" )
+            , ( "border", "1px solid lightgray" )
+            , ( "text-align", "center" )
+            ]
+        , onClick (TabChange subIndex)
+        ]
+        [ renderPreview config gameModel
+            |> Html.map never
+        ]
+
+
+tabHeader : Config -> Int -> Pivot GameModel -> Html Msg
+tabHeader config index examples =
+    examples
+        |> Pivot.toList
+        |> List.indexedMap (tab config)
+        |> List.map (Html.map (Literate.tagMsg index))
+        |> tabHeaderSpacing
+        |> Html.map (MixedPuzzleMsg)
+
+
+activeExample config index example =
+    withUI config index example

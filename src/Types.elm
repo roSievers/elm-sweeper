@@ -5,7 +5,7 @@ module Types exposing (..)
 import Grid exposing (Grid, Direction, Coordinate)
 import Cell exposing (Cell)
 import Literate
-
+import Pivot exposing (Pivot)
 
 type alias Level =
     { title : String
@@ -59,7 +59,7 @@ type alias Config =
 
 type Msg
     = FullscreenMsg GameAction
-    | TutorialMsg (Literate.Msg GameAction)
+    | MixedPuzzleMsg (Literate.Msg Example MixedPuzzleAction)
     | FlipControlls
     | FlipTabletMode
     | SetRoute Route
@@ -77,3 +77,14 @@ type PasteBoxAction
     = PasteBoxEdit String
     | UserLevelMsg GameAction
     | PasteBoxFullscreenReturn GameModel
+
+
+
+type Example
+    = Plain Int GameModel
+    | Tabbed Int (Pivot GameModel)
+    | LoadError String
+
+type MixedPuzzleAction
+    = TabChange Int
+    | PuzzleMsg GameAction

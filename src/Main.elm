@@ -110,9 +110,9 @@ update action model =
                     (Fullscreen.update model.config gameAction)
                 |> Return.singleton
 
-        TutorialMsg literateMsg ->
+        MixedPuzzleMsg literateMsg ->
             Return.singleton
-                { model | tutorial = MixedPuzzle.update model.config literateMsg model.tutorial }
+                { model | tutorial = MixedPuzzle.update model.config (Debug.log "msg" literateMsg) model.tutorial }
 
         FlipControlls ->
             model

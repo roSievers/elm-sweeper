@@ -5,11 +5,9 @@ module Literate
         , Index
         , literate
         , update
-        , RenderConfig
-        , noPreview
         , toHtml
         , Msg
-        , EitherMsg(..)
+        , tagMsg
         )
 
 {-| A library to write tutorials with interactive examples mixed in.
@@ -67,56 +65,28 @@ type alias LiteratePuzzle config example msg =
     List (ProcessedSegment config example msg)
 
 
-{-| The Index type is used to adress segments instead of a simple Int to allow
-nested segments.
+{-| The Index type is used to adress segments and propperly route exampleMessages.
 -}
-type Index
-    = Flat Int
-    | Nested Int Int
+type alias Index =
+    Int
 
 
-flat : Index -> Int
-flat id =
-    case id of
-        Flat index ->
-            index
-
-        Nested index _ ->
-            index
-
-
-nested : Index -> Maybe Int
-nested id =
-    case id of
-        Flat _ ->
-            Nothing
-
-        Nested _ index ->
-            Just index
-
-
-type Msg exampleMsg
-    = TabChange Int Int
-    | ExampleMsg Index exampleMsg
-
-
-type EitherMsg exampleMsg msg
-    = Internal exampleMsg
-    | External msg
+type Msg example exampleMsg
+    = UpdateExample Index exampleMsg
+    | ReplaceExample Index example
 
 
 {-| Specify how examples are rendered and messages are treated.
 -}
-type alias RenderConfig config example exampleMsg msg =
-    { example : config -> example -> Html (EitherMsg exampleMsg msg)
-    , preview : config -> example -> Html Never
-    , tagMsg : Msg exampleMsg -> msg
-    }
+type alias ExampleView example msg =
+    Index -> example -> Html msg
 
 
-noPreview : config -> example -> Html Never
-noPreview _ _ =
-    div [] [ text "Previews are disabled." ]
+{-| Use the tagMsg function to route an exampleMsg to a specific example
+-}
+tagMsg : Index -> exampleMsg -> Msg example exampleMsg
+tagMsg index exampleMsg =
+    UpdateExample index exampleMsg
 
 
 {-| A literate puzzle is a sequence of segments. Some of the segments might
@@ -128,14 +98,12 @@ type Segment config example msg
     | DynamicMarkdown (config -> String)
     | DynamicHtml (config -> Html msg)
     | InlineExample example
-    | TabbedExample (List example)
 
 
 type ProcessedSegment config example msg
     = Static (Html msg)
     | Dynamic (config -> Html msg)
     | Interactive example
-    | Tabbed (List example) Int
 
 
 processSegment : Segment config example msg -> ProcessedSegment config example msg
@@ -156,9 +124,6 @@ processSegment segment =
         InlineExample example ->
             Interactive example
 
-        TabbedExample examples ->
-            Tabbed examples 0
-
 
 {-| Turn a list of segments into a LiteratePuzzle. This converts all static markdown to Html.
 -}
@@ -168,27 +133,17 @@ literate =
 
 
 update :
-    Msg exampleMsg
+    Msg example exampleMsg
     -> (exampleMsg -> example -> example)
     -> LiteratePuzzle config example msg
     -> LiteratePuzzle config example msg
 update message updateFunction puzzle =
     case message of
-        TabChange index subindex ->
-            List.updateAt index (updateActiveTab subindex) puzzle
-                |> Maybe.withDefault puzzle
-
-        ExampleMsg index exampleMsg ->
+        UpdateExample index exampleMsg ->
             updateExample index (updateFunction exampleMsg) puzzle
 
-
-updateActiveTab subindex segment =
-    case segment of
-        Tabbed examples _ ->
-            Tabbed examples subindex
-
-        anythingElse ->
-            anythingElse
+        ReplaceExample index newExample ->
+            updateExample index (\_ -> newExample) puzzle
 
 
 {-| Try to update an example at a specific position.
@@ -206,25 +161,17 @@ updateExample index updateFunction puzzle =
                 Interactive example ->
                     Interactive (updateFunction example)
 
-                Tabbed examples current ->
-                    (nested index)
-                        |> Maybe.map
-                            (\i -> List.updateAt i updateFunction examples)
-                        |> Maybe.withDefault (Just examples)
-                        |> Maybe.withDefault examples
-                        |> flip Tabbed current
-
                 anythingElse ->
                     anythingElse
     in
-        List.updateAt (flat index) internalUpdateFunction puzzle
+        List.updateAt index internalUpdateFunction puzzle
             |> Maybe.withDefault puzzle
 
 
 {-| Turn a LiteratePuzzle into an HTML element.
 -}
 toHtml :
-    RenderConfig config example exampleMsg msg
+    ExampleView example msg
     -> config
     -> LiteratePuzzle config example msg
     -> Html msg
@@ -238,19 +185,8 @@ toHtml render config puzzle =
         ]
 
 
-transformExampleMsg : (Msg exampleMsg -> msg) -> Index -> EitherMsg exampleMsg msg -> msg
-transformExampleMsg tagMsg index message =
-    case message of
-        Internal exampleMsg ->
-            ExampleMsg index exampleMsg
-                |> tagMsg
-
-        External msg ->
-            msg
-
-
 segmentToHtml :
-    RenderConfig config example exampleMsg msg
+    ExampleView example msg
     -> config
     -> Int
     -> ProcessedSegment config example msg
@@ -264,74 +200,4 @@ segmentToHtml render config index segment =
             generateHtml config
 
         Interactive example ->
-            render.example config example
-                |> Html.map (transformExampleMsg render.tagMsg (Flat index))
-
-        Tabbed examples activeSubindex ->
-            div []
-                [ tabHeader
-                    (List.indexedMap (nestedExampleToHtml render config index) examples)
-                , div [ style [ ( "border", "1px solid lightgray" ) ] ]
-                    [ activeExample render config index activeSubindex examples ]
-                ]
-
-
-tabHeader : List (Html msg) -> Html msg
-tabHeader tabs =
-    let
-        length =
-            List.length tabs
-
-        tabsPerLine =
-            if length <= 6 then
-                length
-            else
-                6
-
-        tabWidth =
-            if length > 0 then
-                100 / toFloat tabsPerLine
-            else
-                100
-
-        wrapTab tab =
-            div
-                [ style
-                    [ ( "width", toString tabWidth ++ "%" )
-                    , ( "display", "inline-flex" )
-                    ]
-                ]
-                [ tab ]
-    in
-        div
-            [ style [ ( "width", "100%" ), ( "flex-direction", "row" ) ]
-            ]
-            (List.map wrapTab tabs)
-
-
-nestedExampleToHtml render config index1 index2 example =
-    div
-        [ style
-            [ ( "width", "100%" )
-            , ( "border", "1px solid lightgray" )
-            , ( "text-align", "center" )
-            ]
-        , onClick (render.tagMsg (TabChange index1 index2))
-        ]
-        [ render.preview config example
-            |> Html.map never
-        ]
-
-
-activeExample render config index activeSubindex examples =
-    let
-        maybeExample =
-            List.getAt activeSubindex examples
-    in
-        case maybeExample of
-            Just example ->
-                render.example config example
-                    |> Html.map (transformExampleMsg render.tagMsg (Nested index activeSubindex))
-
-            Nothing ->
-                div [] [ text "A nonexistent tab is active. This should be impossible." ]
+            render index example
