@@ -54,9 +54,9 @@ renderExample config index example =
 
         Tabbed height content ->
             div []
-              [ tabHeader config index content
-              , withUI config index height (Pivot.getPivot content)
-              ]
+                [ tabHeader config index content
+                , withUI config index height (Pivot.getPivot content)
+                ]
 
         LoadError errorMessage ->
             p []
@@ -75,7 +75,7 @@ withUI config index height gameModel =
             [ Components.blockContainer
                 [ Components.flatLabel mineText
                 , Components.flatLabel mistakeText
-                , Components.flatButton (goFullscreen gameModel) "Fullscreen"
+                , Components.flatButton (goFullscreen index gameModel) "Fullscreen"
                 ]
             , withoutUI config index height gameModel
                 |> Html.map MixedPuzzleMsg
@@ -89,13 +89,16 @@ withoutUI config index height gameModel =
         |> Html.map (PuzzleMsg >> Literate.tagMsg index)
 
 
-goFullscreen : GameModel -> Msg
-goFullscreen gameModel =
+goFullscreen : Int -> GameModel -> Msg
+goFullscreen index gameModel =
     let
         onClose newGameModel =
             MultiMessage
                 (SetRoute Tutorial)
-                (PasteBoxMsg (PasteBoxFullscreenReturn newGameModel))
+                (MixedPuzzleFullscreenReturn newGameModel
+                    |> Literate.tagMsg index
+                    |> MixedPuzzleMsg
+                )
 
         fullscreen =
             { gameModel = gameModel
@@ -119,6 +122,9 @@ updateExample config action example =
         TabChange subIndex ->
             updateActiveTab subIndex example
 
+        MixedPuzzleFullscreenReturn gameModel ->
+            replaceGameContent gameModel example
+
 
 updateGameContent : Config -> GameAction -> Example -> Example
 updateGameContent config action example =
@@ -129,9 +135,25 @@ updateGameContent config action example =
 
         Tabbed height content ->
             Lens.modify Pivot.pivot
-              (Game.update config action)
-              content
-              |> Tabbed height
+                (Game.update config action)
+                content
+                |> Tabbed height
+
+        anythingElse ->
+            anythingElse
+
+
+replaceGameContent : GameModel -> Example -> Example
+replaceGameContent gameModel example =
+    case example of
+        Plain height _ ->
+            Plain height gameModel
+
+        Tabbed height content ->
+            .set Pivot.pivot
+                gameModel
+                content
+                |> Tabbed height
 
         anythingElse ->
             anythingElse
@@ -139,11 +161,11 @@ updateGameContent config action example =
 
 updateActiveTab : Int -> Example -> Example
 updateActiveTab subIndex example =
-    case Debug.log "example" example of
+    case example of
         Tabbed height content ->
             Pivot.setIndex subIndex content
-              |> Maybe.withDefault content
-              |> Tabbed height
+                |> Maybe.withDefault content
+                |> Tabbed height
 
         anythingElse ->
             anythingElse
@@ -252,10 +274,6 @@ puzzleGroup height data =
 
 
 {- Things pushed in here by the literate refactor -}
-
-
-
-
 --    TabChange index subindex ->
 --        List.updateAt index (updateActiveTab subindex) puzzle
 --            |> Maybe.withDefault puzzle

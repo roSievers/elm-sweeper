@@ -88,3 +88,4 @@ type Example
 type MixedPuzzleAction
     = TabChange Int
     | PuzzleMsg GameAction
+    | MixedPuzzleFullscreenReturn GameModel
